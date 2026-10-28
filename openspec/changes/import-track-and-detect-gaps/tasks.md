@@ -2,12 +2,12 @@
 
 ## 1. 專案骨架
 
-- [ ] 1.1 用 Vite 建立 React + TypeScript 專案（在 repo 根目錄），驗證 `npm run dev` 能啟動並在瀏覽器顯示預設頁面
-- [ ] 1.2 安裝依賴 `maplibre-gl`、`@tmcw/togeojson`、`vite-plugin-pwa`，開發依賴 `vitest`、`@xmldom/xmldom`，驗證 `npm install` 成功且 `npm run build` 通過
-- [ ] 1.3 設定 `npm test` 執行 Vitest，加入一個暫時的 smoke test，驗證 `npm test` 通過
-- [ ] 1.4 把 `Day1+2.kml` 複製到 `test-data/`，驗證檔案大小與原檔一致（1,822,455 bytes）
-- [ ] 1.5 建立 design 中的目錄結構（`src/core`、`src/map`、`src/components`），驗證 core 不 import React 或 MapLibre
-- [ ] 1.6 更新 README（技術方向、`npm run dev` / `npm test` / `npm run build` 指令、目前進度）與 CLAUDE.md（技術選擇改為已確定的組合，保留「新增函式庫前先確認」），驗證文件中的指令實際可執行
+- [x] 1.1 用 Vite 建立 React + TypeScript 專案（在 repo 根目錄），驗證 `npm run dev` 能啟動並在瀏覽器顯示預設頁面
+- [x] 1.2 安裝依賴 `maplibre-gl`、`@tmcw/togeojson`、`vite-plugin-pwa`，開發依賴 `vitest`、`@xmldom/xmldom`，驗證 `npm install` 成功且 `npm run build` 通過
+- [x] 1.3 設定 `npm test` 執行 Vitest，加入一個暫時的 smoke test，驗證 `npm test` 通過
+- [x] 1.4 把 `Day1+2.kml` 複製到 `test-data/`，驗證檔案大小與原檔一致（1,822,455 bytes）
+- [x] 1.5 建立 design 中的目錄結構（`src/core`、`src/map`、`src/components`），驗證 core 不 import React 或 MapLibre
+- [x] 1.6 更新 README（技術方向、`npm run dev` / `npm test` / `npm run build` 指令、目前進度）與 CLAUDE.md（技術選擇改為已確定的組合，保留「新增函式庫前先確認」），驗證文件中的指令實際可執行
 
 ## 2. 軌跡匯入（track-import）
 
