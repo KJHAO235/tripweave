@@ -11,11 +11,11 @@
 
 ## 2. 軌跡匯入（track-import）
 
-- [ ] 2.1 實作資料模型 `Track` / `Segment` / `TrackPoint`（`src/core/track.ts`），驗證 TypeScript 編譯通過
-- [ ] 2.2 實作 KML 解析（LineString 為段落、捨棄 Point），驗證測試：`Day1+2.kml` 解析出 2 段、17,033 點與 29,845 點，且 `hasTime` 為 false
-- [ ] 2.3 支援 KML `gx:Track` 與逐點時間，驗證手寫測試檔的每點都帶有正確時間
-- [ ] 2.4 實作 GPX 解析（trkseg 為段落、沒有 trk 時讀 rte、時間與海拔），驗證測試：多段 GPX 解析出正確段數，含時間的 GPX 每點有時間與海拔
-- [ ] 2.5 實作格式判斷與錯誤處理（不支援格式、內容損毀、沒有軌跡），驗證測試：PDF 回傳「不支援的檔案格式」、只有地標點的 KML 回傳「檔案中找不到軌跡」
+- [x] 2.1 實作資料模型 `Track` / `Segment` / `TrackPoint`（`src/core/track.ts`），驗證 TypeScript 編譯通過
+- [x] 2.2 實作 KML 解析（LineString 為段落、捨棄 Point），驗證測試：`Day1+2.kml` 解析出 2 段、17,033 點與 29,845 點，且 `hasTime` 為 false
+- [x] 2.3 支援 KML `gx:Track` 與逐點時間，驗證手寫測試檔的每點都帶有正確時間
+- [x] 2.4 實作 GPX 解析（trkseg 為段落、沒有 trk 時讀 rte、時間與海拔），驗證測試：多段 GPX 解析出正確段數，含時間的 GPX 每點有時間與海拔
+- [x] 2.5 實作格式判斷與錯誤處理（不支援格式、內容損毀、沒有軌跡），驗證測試：PDF 回傳「不支援的檔案格式」、只有地標點的 KML 回傳「檔案中找不到軌跡」
 
 ## 3. 缺口偵測（gap-detection）
 
