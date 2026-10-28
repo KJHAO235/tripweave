@@ -1,122 +1,94 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { useMemo, useState } from 'react'
+import { parseXmlInBrowser } from './browserXml'
+import { GapPanel } from './components/GapPanel'
+import { ImportButton } from './components/ImportButton'
+import { TrackMap } from './components/TrackMap'
+import { DEFAULT_GAP_THRESHOLD_KM, detectGaps, type Gap } from './core/gaps'
+import { toMapFeatures } from './core/mapFeatures'
+import { parseTrackFile } from './core/parse/trackFile'
+import { trackBounds, type Track } from './core/track'
 
-function App() {
-  const [count, setCount] = useState(0)
+export default function App() {
+  const [track, setTrack] = useState<Track | null>(null)
+  const [thresholdKm, setThresholdKm] = useState(DEFAULT_GAP_THRESHOLD_KM)
+  const [selectedGapId, setSelectedGapId] = useState<string | null>(null)
+  const [focusRequest, setFocusRequest] = useState<{ gap: Gap } | null>(null)
+  const [panelExpanded, setPanelExpanded] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+
+  const gaps = useMemo(() => (track ? detectGaps(track, thresholdKm) : []), [track, thresholdKm])
+  const features = useMemo(() => (track ? toMapFeatures(track, gaps) : null), [track, gaps])
+  const bounds = useMemo(() => (track ? trackBounds(track) : null), [track])
+  const selectedGap = gaps.find((gap) => gap.id === selectedGapId) ?? null
+
+  async function handleFile(file: File) {
+    setLoading(true)
+    try {
+      const result = parseTrackFile(file.name, await file.text(), parseXmlInBrowser)
+      if (!result.ok) {
+        // 匯入失敗時保留目前的軌跡
+        setError(result.message)
+        return
+      }
+      setError(null)
+      setTrack(result.track)
+      setSelectedGapId(null)
+    } catch {
+      setError('無法讀取檔案')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <div className="app">
+      <TrackMap
+        features={features}
+        bounds={bounds}
+        selectedGap={selectedGap}
+        focusRequest={focusRequest}
+        onSelectGap={(id) => {
+          setSelectedGapId(id)
+          setPanelExpanded(true)
+        }}
+      />
 
-      <div className="ticks"></div>
+      <header className="toolbar">
+        <ImportButton onFile={handleFile} />
+        {loading && <span className="file-name">讀取中…</span>}
+        {!loading && track?.name && <span className="file-name">{track.name}</span>}
+      </header>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
+      {error && (
+        <div className="error" role="alert">
+          <span>{error}</span>
+          <button onClick={() => setError(null)} aria-label="關閉錯誤訊息">
+            ✕
+          </button>
         </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+      )}
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+      {track ? (
+        <GapPanel
+          gaps={gaps}
+          thresholdKm={thresholdKm}
+          onThresholdChange={setThresholdKm}
+          selectedGapId={selectedGapId}
+          onSelectFromList={(id) => {
+            setSelectedGapId(id)
+            const gap = gaps.find((g) => g.id === id)
+            if (gap) setFocusRequest({ gap })
+          }}
+          onClearSelection={() => setSelectedGapId(null)}
+          expanded={panelExpanded}
+          onToggleExpanded={() => setPanelExpanded(!panelExpanded)}
+        />
+      ) : (
+        <p className="hint">點左上角「匯入軌跡」，選擇 KML 或 GPX 檔</p>
+      )}
+
+      <footer className="build-info">build {__BUILD_TIME__}</footer>
+    </div>
   )
 }
-
-export default App

@@ -20,3 +20,22 @@ export interface Track {
 export function countPoints(track: Track): number {
   return track.segments.reduce((sum, segment) => sum + segment.points.length, 0)
 }
+
+/** [[西, 南], [東, 北]]，沒有任何點時回傳 null */
+export type Bounds = [[number, number], [number, number]]
+
+export function trackBounds(track: Track): Bounds | null {
+  let west = Infinity
+  let south = Infinity
+  let east = -Infinity
+  let north = -Infinity
+  for (const segment of track.segments) {
+    for (const { lat, lon } of segment.points) {
+      if (lon < west) west = lon
+      if (lon > east) east = lon
+      if (lat < south) south = lat
+      if (lat > north) north = lat
+    }
+  }
+  return Number.isFinite(west) ? [[west, south], [east, north]] : null
+}
