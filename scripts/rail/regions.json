@@ -1,3 +1,5 @@
 {
-  "regions": ["asia/japan", "asia/taiwan"]
+  "groups": {
+    "asia": ["asia/japan", "asia/taiwan"]
+  }
 }

@@ -15,9 +15,24 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  build:
+  plan:
     runs-on: ubuntu-latest
-    timeout-minutes: 300
+    outputs:
+      groups: ${{ steps.groups.outputs.groups }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: groups
+        run: echo "groups=$(node -e "console.log(JSON.stringify(Object.keys(require('./scripts/rail/regions.json').groups)))")" >> "$GITHUB_OUTPUT"
+
+  # 每個洲一台機器同時處理；任一洲失敗就整次停止，不會上傳半套資料
+  continent:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy:
+      fail-fast: true
+      matrix:
+        group: ${{ fromJSON(needs.plan.outputs.groups) }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -25,17 +40,51 @@ jobs:
           node-version: 24
       - name: 安裝 osmium
         run: sudo apt-get update && sudo apt-get install -y osmium-tool
-      - name: 下載並篩選各地區的鐵路
+      # 一次處理一個地區並立刻刪除原始檔，控制硬碟與記憶體用量
+      - name: 逐一產生各地區的網格
         run: |
-          mkdir -p work
-          for region in $(node -e "console.log(require('./scripts/rail/regions.json').regions.join(' '))"); do
+          start=$(date +%s)
+          for region in $(node -e "console.log(require('./scripts/rail/regions.json').groups['${{ matrix.group }}'].join(' '))"); do
+            name="${region//\//_}"
             scripts/rail/fetch-region.sh "$region" work
+            node scripts/rail/build-tiles.ts --out "tiles/$name" "work/$name.rail.opl"
+            rm -f "work/$name.rail.opl"
           done
-      - name: 產生網格
-        run: node scripts/rail/build-tiles.ts --out out work/*.rail.opl
-      - name: 打包
-        run: tar -czf rail-data.tar.gz -C out . && ls -lh rail-data.tar.gz
-      # 前面任何一步失敗都不會執行到這裡，Release 會保留上一版資料
+          echo "地區處理耗時 $(( $(date +%s) - start )) 秒"
+      - name: 合併洲內網格
+        run: |
+          node scripts/rail/merge-tiles.ts --out out tiles/*
+          tar -czf "rail-${{ matrix.group }}.tar.gz" -C out .
+          du -sh out "rail-${{ matrix.group }}.tar.gz"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rail-${{ matrix.group }}
+          path: rail-${{ matrix.group }}.tar.gz
+          retention-days: 3
+
+  publish:
+    needs: continent
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: rail-*
+          merge-multiple: true
+          path: parts
+      - name: 合併所有洲
+        run: |
+          for file in parts/*.tar.gz; do
+            dir="parts/$(basename "$file" .tar.gz)"
+            mkdir -p "$dir" && tar -xzf "$file" -C "$dir"
+          done
+          node scripts/rail/merge-tiles.ts --out out parts/*/
+          tar -czf rail-data.tar.gz -C out .
+          du -sh out rail-data.tar.gz
+          echo "網格檔案數：$(find out -name '*.json' | wc -l)"
       - name: 上傳到 Release
         env:
           GH_TOKEN: ${{ github.token }}

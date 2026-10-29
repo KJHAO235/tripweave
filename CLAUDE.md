@@ -26,7 +26,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - `src/core/`：純 TypeScript 的資料模型與演算法（解析、缺口偵測等），不得引用 React 或 MapLibre；`src/core/boundary.test.ts` 會檢查這條規則。
 - `src/core/rail/`：鐵路網格格式、鐵路網圖、最短路徑與沿鐵路補路判斷；`scripts/rail/` 也會用 Node 直接執行這裡的 `tile.ts`，所以此資料夾內的相對 import 要寫 `.ts` 副檔名。
-- 鐵路資料每月由 `.github/workflows/rail-data.yml` 從 Geofabrik 產生並存成 GitHub Release「rail-data」，`deploy.yml` 部署時下載並放到 `dist/rail/`。
+- 鐵路資料每月由 `.github/workflows/rail-data.yml` 從 Geofabrik 產生並存成 GitHub Release「rail-data」，`deploy.yml` 部署時下載並放到 `dist/rail/`。地區清單在 `scripts/rail/regions.json`（依洲分組，每洲一台機器平行處理）；每個地區各自產生網格後用 `merge-tiles.ts` 合併。全球清單由 `make-regions.ts` 從 Geofabrik 索引產生，存在 `regions.global.json`。
 - `src/map/`：MapLibre 圖層與樣式。
 - `src/components/`：React 元件。
 - 規劃文件在 `openspec/`，用 OpenSpec 流程管理（`/opsx:propose`、`/opsx:apply`）。
