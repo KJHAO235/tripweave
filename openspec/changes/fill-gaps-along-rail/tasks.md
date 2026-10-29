@@ -45,7 +45,7 @@
 - [x] 6.1 Service worker：`rail/` 用 CacheFirst（30 天）、`index.json` 用 NetworkFirst，驗證建置產出的 sw.js 含這兩條規則
 - [x] 6.2 建立 `.github/workflows/rail-data.yml`（每月排程與手動觸發、處理地區清單、上傳 Release「rail-data」、觸發部署、失敗不上傳），驗證 YAML 語法正確
 - [x] 6.3 修改 `deploy.yml`：部署前下載 Release 的 rail-data 並解壓到 `dist/rail/`，Release 不存在時照常部署，驗證 YAML 語法正確
-- [ ] 6.4 push 並手動觸發 rail-data，驗證 Release 有 rail-data.tar.gz、網站的 `rail/v1/index.json` 可以開啟
+- [x] 6.4 push 並手動觸發 rail-data，驗證 Release 有 rail-data.tar.gz、網站的 `rail/v1/index.json` 可以開啟
 
 ## 7. iPhone 驗收
 
