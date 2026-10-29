@@ -41,14 +41,14 @@
 
 - [x] 5.1 設定 `vite-plugin-pwa`（manifest `display: standalone`、service worker `autoUpdate`）與 Vite `base: '/tripweave/'`，畫面顯示 build 時間，驗證 `npm run build` 產出 manifest 與 service worker
 - [x] 5.2 建立 GitHub Actions：push 到 main 時執行測試、建置並部署 GitHub Pages，驗證 workflow 檔語法正確
-- [ ] 5.3 建立公開 GitHub repo、設定 remote 並 push（執行前先向使用者確認），在 repo 設定把 Pages 來源設為 GitHub Actions，驗證 Actions 執行成功且網址可以開啟
+- [x] 5.3 建立公開 GitHub repo、設定 remote 並 push（執行前先向使用者確認），在 repo 設定把 Pages 來源設為 GitHub Actions，驗證 Actions 執行成功且網址可以開啟
 
 ## 6. iPhone 整合驗收
 
-- [ ] 6.1 在 iPhone Safari 開啟部署網址，從「檔案」App 選取 `Day1+2.kml`，驗證軌跡在數秒內顯示且平移、縮放順暢
-- [ ] 6.2 在 iPhone 上確認五個主要缺口都以虛線顯示，點選列表能跳到對應位置
-- [ ] 6.3 加入主畫面後從圖示開啟，驗證以全螢幕顯示、沒有 Safari 網址列
-- [ ] 6.4 用同一份資料截圖，和 Relive 的「活動地圖」截圖並排，確認苫小牧到札幌、青函隧道都被清楚標示為缺口
+- [x] 6.1 在 iPhone Safari 開啟部署網址，從「檔案」App 選取 `Day1+2.kml`，驗證軌跡在數秒內顯示且平移、縮放順暢
+- [x] 6.2 在 iPhone 上確認五個主要缺口都以虛線顯示，點選列表能跳到對應位置
+- [x] 6.3 加入主畫面後從圖示開啟，驗證以全螢幕顯示、沒有 Safari 網址列
+- [x] 6.4 用同一份資料截圖，和 Relive 的「活動地圖」截圖並排，確認苫小牧到札幌、青函隧道都被清楚標示為缺口
 
 ## Workflow follow-up
 
