@@ -10,7 +10,9 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate',
+      // 由 src/pwa.ts 自行註冊，依是否已匯入軌跡決定何時換上新版
+      registerType: 'prompt',
+      injectRegister: false,
       manifest: {
         name: 'TripWeave 旅程重建',
         short_name: 'TripWeave',

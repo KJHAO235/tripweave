@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { parseXmlInBrowser } from './browserXml'
 import { GapPanel } from './components/GapPanel'
 import { ImportButton } from './components/ImportButton'
@@ -7,6 +7,7 @@ import { DEFAULT_GAP_THRESHOLD_KM, detectGaps } from './core/gaps'
 import { toMapFeatures } from './core/mapFeatures'
 import { parseTrackFile } from './core/parse/trackFile'
 import { trackBounds, type Track } from './core/track'
+import { setHasUserData } from './pwa'
 import { useRailFills } from './useRailFills'
 
 export default function App() {
@@ -23,6 +24,8 @@ export default function App() {
   const features = useMemo(() => (track ? toMapFeatures(track, gaps, fills) : null), [track, gaps, fills])
   const bounds = useMemo(() => (track ? trackBounds(track) : null), [track])
   const selectedGap = gaps.find((gap) => gap.id === selectedGapId) ?? null
+
+  useEffect(() => setHasUserData(track !== null), [track])
 
   async function handleFile(file: File) {
     setLoading(true)
