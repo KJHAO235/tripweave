@@ -39,7 +39,7 @@
 
 ## 5. PWA 與部署
 
-- [x] 5.1 設定 `vite-plugin-pwa`（manifest `display: standalone`、service worker `autoUpdate`）與 Vite `base: '/relive-app/'`，畫面顯示 build 時間，驗證 `npm run build` 產出 manifest 與 service worker
+- [x] 5.1 設定 `vite-plugin-pwa`（manifest `display: standalone`、service worker `autoUpdate`）與 Vite `base: '/tripweave/'`，畫面顯示 build 時間，驗證 `npm run build` 產出 manifest 與 service worker
 - [x] 5.2 建立 GitHub Actions：push 到 main 時執行測試、建置並部署 GitHub Pages，驗證 workflow 檔語法正確
 - [ ] 5.3 建立公開 GitHub repo、設定 remote 並 push（執行前先向使用者確認），在 repo 設定把 Pages 來源設為 GitHub Actions，驗證 Actions 執行成功且網址可以開啟
 

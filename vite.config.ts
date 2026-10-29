@@ -2,8 +2,8 @@ import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
-// GitHub Pages 的網址是 https://<帳號>.github.io/relive-app/，必須與 repo 名稱一致
-const BASE = '/relive-app/'
+// GitHub Pages 的網址是 https://<帳號>.github.io/tripweave/，必須與 repo 名稱一致
+const BASE = '/tripweave/'
 
 export default defineConfig({
   base: BASE,
@@ -12,8 +12,8 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       manifest: {
-        name: 'relive-app 旅程重建',
-        short_name: 'relive-app',
+        name: 'TripWeave 旅程重建',
+        short_name: 'TripWeave',
         lang: 'zh-Hant',
         start_url: BASE,
         scope: BASE,

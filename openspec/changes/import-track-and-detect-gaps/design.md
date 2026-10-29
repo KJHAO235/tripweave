@@ -97,7 +97,7 @@ KML/GPX 轉成 GeoJSON 後再轉成內部 Track：取 LineString / MultiLineStri
 
 - `vite-plugin-pwa` 產生 manifest（`display: standalone`）與 service worker（`autoUpdate`，避免舊版本卡在快取）
 - GitHub Actions：push 到 `main` 時執行測試、建置並部署到 GitHub Pages
-- Vite `base` 設為 `/relive-app/`（GitHub Pages 子路徑）
+- Vite `base` 設為 `/tripweave/`（GitHub Pages 子路徑，需與 repo 名稱一致）
 
 ### 9. 測試策略
 
@@ -126,4 +126,4 @@ KML/GPX 轉成 GeoJSON 後再轉成內部 Track：取 LineString / MultiLineStri
 
 ## Open Questions
 
-- App 顯示名稱與圖示：目前用 `relive-app` 與預設圖示，之後再決定，不影響架構
+- App 圖示：目前用預設圖示，之後再決定，不影響架構（名稱已定為 TripWeave，repo 為 `tripweave`）
