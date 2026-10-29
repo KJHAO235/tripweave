@@ -72,6 +72,8 @@ async function main(argv: string[]) {
     await writeFile(path, json)
   }
 
+  // 沒有鐵路的地區（例如南極洲、小島）也要輸出空的 index，合併時才不會缺檔
+  await mkdir(join(outDir, `v${TILE_FORMAT_VERSION}`), { recursive: true })
   const index: RailIndex = {
     v: TILE_FORMAT_VERSION,
     generated: new Date().toISOString(),

@@ -62,3 +62,17 @@ describe('Douglas–Peucker 精簡', () => {
     expect(simplify([[0, 0], [0.005, 0.00002], [0.01, 0]], 5)).toEqual([[0, 0], [0.01, 0]])
   })
 })
+
+describe('產生網格的指令', () => {
+  test('沒有任何鐵路的地區也輸出空的 index（例如南極洲）', async () => {
+    const { execFileSync } = await import('node:child_process')
+    const { mkdtemp, readFile, writeFile } = await import('node:fs/promises')
+    const { tmpdir } = await import('node:os')
+    const { join } = await import('node:path')
+    const dir = await mkdtemp(join(tmpdir(), 'build-tiles-'))
+    await writeFile(join(dir, 'empty.rail.opl'), '')
+    execFileSync('node', ['scripts/rail/build-tiles.ts', '--out', join(dir, 'out'), join(dir, 'empty.rail.opl')])
+    const index = JSON.parse(await readFile(join(dir, 'out/v1/index.json'), 'utf8'))
+    expect(index.tiles).toEqual([])
+  })
+})
