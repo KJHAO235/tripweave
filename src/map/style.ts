@@ -5,4 +5,5 @@ export const TRACK_COLORS = {
   recorded: '#2563eb',
   gap: '#ea580c',
   gapSelected: '#dc2626',
+  inferred: '#7c3aed',
 } as const

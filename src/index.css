@@ -7,6 +7,8 @@
   --surface: #ffffff;
   --border: #e5e7eb;
   --selected: #fef2f2;
+  --purple: #7c3aed;
+  --purple-bg: #f5f3ff;
   font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Noto Sans TC', system-ui, sans-serif;
   font-size: 15px;
   color: var(--text);
@@ -257,4 +259,76 @@ button {
   font-size: 10px;
   color: var(--muted);
   pointer-events: none;
+}
+
+.toolbar {
+  flex-wrap: wrap;
+}
+
+.progress {
+  color: var(--purple);
+}
+
+.legend {
+  position: absolute;
+  top: calc(env(safe-area-inset-top) + 64px);
+  left: calc(env(safe-area-inset-left) + 12px);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+  background: rgb(255 255 255 / 0.92);
+  border-radius: 10px;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.15);
+  font-size: 12px;
+  pointer-events: none;
+}
+
+.legend div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.legend small {
+  margin-top: 2px;
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.swatch {
+  width: 28px;
+  height: 0;
+  border-top: 3px solid var(--blue);
+}
+
+.swatch.inferred {
+  border-top: 4px dotted var(--purple);
+}
+
+.swatch.gap {
+  border-top: 3px dashed var(--orange);
+}
+
+.filled-count {
+  font-weight: 400;
+  color: var(--purple);
+}
+
+.gap-list .distance.filled {
+  color: var(--purple);
+}
+
+.gap-list .tag.inferred {
+  color: var(--purple);
+  border-color: var(--purple);
+  max-width: 45%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gap-detail.filled {
+  border-color: var(--purple);
+  background: var(--purple-bg);
 }

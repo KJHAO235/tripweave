@@ -1,0 +1,49 @@
+name: 產生鐵路資料
+
+on:
+  schedule:
+    # 每月 2 日 03:00 UTC，Geofabrik 的檔案每天更新
+    - cron: '0 3 2 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: rail-data
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: 安裝 osmium
+        run: sudo apt-get update && sudo apt-get install -y osmium-tool
+      - name: 下載並篩選各地區的鐵路
+        run: |
+          mkdir -p work
+          for region in $(node -e "console.log(require('./scripts/rail/regions.json').regions.join(' '))"); do
+            scripts/rail/fetch-region.sh "$region" work
+          done
+      - name: 產生網格
+        run: node scripts/rail/build-tiles.ts --out out work/*.rail.opl
+      - name: 打包
+        run: tar -czf rail-data.tar.gz -C out . && ls -lh rail-data.tar.gz
+      # 前面任何一步失敗都不會執行到這裡，Release 會保留上一版資料
+      - name: 上傳到 Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view rail-data > /dev/null 2>&1 || \
+            gh release create rail-data --title "鐵路資料" --notes "由「產生鐵路資料」workflow 每月自動產生，請勿手動修改。"
+          gh release upload rail-data rail-data.tar.gz --clobber
+      - name: 觸發網站部署
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run deploy.yml --ref main

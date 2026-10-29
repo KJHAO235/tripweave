@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest'
 import { loadTestTrack } from '../test/parseXml'
 import { detectGaps } from './gaps'
 import { toMapFeatures } from './mapFeatures'
+import type { RailFill } from './rail/fill'
 import { countPoints, type Track } from './track'
 
 const key = (a: number[], b: number[]) => `${a[0]},${a[1]}|${b[0]},${b[1]}`
@@ -61,5 +62,43 @@ describe('切線規則', () => {
     const { gaps } = toMapFeatures(track, detectGaps(track))
     expect(Object.values(gaps.features[0].properties)).not.toContain(undefined)
     expect(gaps.features[0].properties).not.toHaveProperty('durationSec')
+  })
+})
+
+describe('推算路段', () => {
+  const p = (lat: number) => ({ lat, lon: 0 })
+  const track: Track = { hasTime: false, segments: [{ points: [p(0), p(0.001), p(1), p(1.001), p(2), p(2.001)] }] }
+  const gaps = detectGaps(track)
+  const filled = gaps.find((g) => g.from.lat === 0.001)!
+  const fills = new Map<string, RailFill>([
+    [
+      filled.id,
+      {
+        gapId: filled.id,
+        mode: 'rail',
+        path: [[0, 0.001], [0.01, 0.5], [0, 0.99]],
+        lengthKm: 110,
+        routeNames: ['線'],
+        remainders: [[[0, 0.99], [0, 1]]],
+      },
+    ],
+  ])
+  const features = toMapFeatures(track, gaps, fills)
+
+  test('已補齊的缺口不再畫成整段缺口線，只畫 remainder', () => {
+    const lines = features.gaps.features.map((f) => f.geometry.coordinates)
+    expect(lines).not.toContainEqual([[0, 0.001], [0, 1]])
+    expect(lines).toContainEqual([[0, 0.99], [0, 1]])
+    expect(features.gaps.features.filter((f) => f.properties.id === filled.id)).toHaveLength(1)
+  })
+
+  test('未補齊的缺口照舊畫成整段缺口線', () => {
+    expect(features.gaps.features.map((f) => f.geometry.coordinates)).toContainEqual([[0, 1.001], [0, 2]])
+  })
+
+  test('推算圖層只有補齊的缺口，帶有缺口 id 與長度', () => {
+    expect(features.inferred.features).toHaveLength(1)
+    expect(features.inferred.features[0].properties).toEqual({ gapId: filled.id, lengthKm: 110 })
+    expect(features.inferred.features[0].geometry.coordinates).toEqual(fills.get(filled.id)!.path)
   })
 })

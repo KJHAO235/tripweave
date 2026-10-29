@@ -6,15 +6,15 @@ import type { MapFeatures } from '../core/mapFeatures'
 import type { Bounds } from '../core/track'
 import { MAP_STYLE_URL } from '../map/style'
 import '../map/worker'
-import { addTrackLayers, LAYER_GAPS_HIT, setSelectedGap, setTrackData } from '../map/trackLayers'
+import { addTrackLayers, LAYER_GAPS_HIT, LAYER_INFERRED_HIT, setSelectedGap, setTrackData } from '../map/trackLayers'
 
 interface Props {
   features: MapFeatures | null
   /** 匯入新軌跡時變更，地圖會縮放到這個範圍 */
   bounds: Bounds | null
   selectedGap: Gap | null
-  /** 從列表點選時傳入新的物件，地圖就移到該缺口；在地圖上點選不移動 */
-  focusRequest: { gap: Gap } | null
+  /** 從列表點選時傳入新的物件，地圖就移到這些座標的範圍；在地圖上點選不移動 */
+  focusRequest: { coords: [number, number][] } | null
   onSelectGap: (gapId: string) => void
 }
 
@@ -49,8 +49,14 @@ export function TrackMap({ features, bounds, selectedGap, focusRequest, onSelect
       const id = event.features?.[0]?.properties?.id
       if (typeof id === 'string') onSelectRef.current(id)
     })
-    map.on('mouseenter', LAYER_GAPS_HIT, () => (map.getCanvas().style.cursor = 'pointer'))
-    map.on('mouseleave', LAYER_GAPS_HIT, () => (map.getCanvas().style.cursor = ''))
+    map.on('click', LAYER_INFERRED_HIT, (event) => {
+      const id = event.features?.[0]?.properties?.gapId
+      if (typeof id === 'string') onSelectRef.current(id)
+    })
+    for (const layer of [LAYER_GAPS_HIT, LAYER_INFERRED_HIT]) {
+      map.on('mouseenter', layer, () => (map.getCanvas().style.cursor = 'pointer'))
+      map.on('mouseleave', layer, () => (map.getCanvas().style.cursor = ''))
+    }
     return () => {
       map.remove()
       mapRef.current = null
@@ -71,11 +77,12 @@ export function TrackMap({ features, bounds, selectedGap, focusRequest, onSelect
 
   useEffect(() => {
     if (!ready || !focusRequest) return
-    const { from, to } = focusRequest.gap
+    const lons = focusRequest.coords.map(([lon]) => lon)
+    const lats = focusRequest.coords.map(([, lat]) => lat)
     mapRef.current!.fitBounds(
       [
-        [Math.min(from.lon, to.lon), Math.min(from.lat, to.lat)],
-        [Math.max(from.lon, to.lon), Math.max(from.lat, to.lat)],
+        [Math.min(...lons), Math.min(...lats)],
+        [Math.max(...lons), Math.max(...lats)],
       ],
       { padding: padding(), maxZoom: 13 },
     )

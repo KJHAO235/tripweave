@@ -13,7 +13,8 @@ pbf="$workdir/$name.osm.pbf"
 rail_pbf="$workdir/$name.rail.osm.pbf"
 opl="$workdir/$name.rail.opl"
 
-curl --fail --location --silent --show-error --retry 3 \
+# --continue-at - 讓中斷的下載可以從已下載的部分接續
+curl --fail --location --silent --show-error --retry 3 --continue-at - \
   --user-agent "$user_agent" \
   --output "$pbf" "https://download.geofabrik.de/$region-latest.osm.pbf"
 

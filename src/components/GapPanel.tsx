@@ -1,11 +1,13 @@
 import { useEffect, useRef } from 'react'
 import { formatDuration, formatKm, formatLatLon, formatSpeed } from '../core/format'
 import type { Gap } from '../core/gaps'
+import type { RailFill } from '../core/rail/fill'
 
 const THRESHOLD_STEPS_KM = [0.5, 1, 2, 3, 5, 10, 20, 50]
 
 interface Props {
   gaps: Gap[]
+  fills: ReadonlyMap<string, RailFill>
   thresholdKm: number
   onThresholdChange: (km: number) => void
   selectedGapId: string | null
@@ -17,6 +19,7 @@ interface Props {
 
 export function GapPanel({
   gaps,
+  fills,
   thresholdKm,
   onThresholdChange,
   selectedGapId,
@@ -39,7 +42,9 @@ export function GapPanel({
   return (
     <section className={`panel ${expanded ? 'expanded' : 'collapsed'}`}>
       <button className="panel-handle" onClick={onToggleExpanded} aria-expanded={expanded}>
-        <span className="panel-title">缺口 {gaps.length} 個</span>
+        <span className="panel-title">
+          缺口 {gaps.length} 個{fills.size > 0 && <span className="filled-count"> · 已補齊 {fills.size}</span>}
+        </span>
         <span className="panel-toggle">{expanded ? '收合' : '展開'}</span>
       </button>
 
@@ -57,19 +62,23 @@ export function GapPanel({
             />
           </label>
 
-          {selectedGap && <GapDetail gap={selectedGap} onClose={onClearSelection} />}
+          {selectedGap && <GapDetail gap={selectedGap} fill={fills.get(selectedGap.id)} onClose={onClearSelection} />}
 
           <ol className="gap-list" ref={listRef}>
-            {gaps.map((gap, index) => (
-              <li key={gap.id} data-gap-id={gap.id}>
-                <button className={gap.id === selectedGapId ? 'selected' : ''} onClick={() => onSelectFromList(gap.id)}>
-                  <span className="rank">#{index + 1}</span>
-                  <span className="distance">{formatKm(gap.distanceKm)}</span>
-                  {gap.durationSec !== undefined && <span className="meta">{formatDuration(gap.durationSec)}</span>}
-                  {gap.isSegmentBoundary && <span className="tag">段落交界</span>}
-                </button>
-              </li>
-            ))}
+            {gaps.map((gap, index) => {
+              const fill = fills.get(gap.id)
+              return (
+                <li key={gap.id} data-gap-id={gap.id}>
+                  <button className={gap.id === selectedGapId ? 'selected' : ''} onClick={() => onSelectFromList(gap.id)}>
+                    <span className="rank">#{index + 1}</span>
+                    <span className={fill ? 'distance filled' : 'distance'}>{formatKm(gap.distanceKm)}</span>
+                    {gap.durationSec !== undefined && <span className="meta">{formatDuration(gap.durationSec)}</span>}
+                    {fill && <span className="tag inferred">鐵路 {fill.routeNames[0] ?? ''}</span>}
+                    {gap.isSegmentBoundary && <span className="tag">段落交界</span>}
+                  </button>
+                </li>
+              )
+            })}
           </ol>
         </>
       )}
@@ -77,16 +86,24 @@ export function GapPanel({
   )
 }
 
-function GapDetail({ gap, onClose }: { gap: Gap; onClose: () => void }) {
+function GapDetail({ gap, fill, onClose }: { gap: Gap; fill: RailFill | undefined; onClose: () => void }) {
   return (
-    <div className="gap-detail" role="status">
+    <div className={fill ? 'gap-detail filled' : 'gap-detail'} role="status">
       <div className="gap-detail-header">
-        <strong>缺口 {formatKm(gap.distanceKm)}</strong>
+        <strong>{fill ? `已沿鐵路補齊（缺口 ${formatKm(gap.distanceKm)}）` : `缺口 ${formatKm(gap.distanceKm)}`}</strong>
         <button onClick={onClose} aria-label="關閉缺口資訊">
           ✕
         </button>
       </div>
       <dl>
+        {fill && (
+          <>
+            <dt>經過路線</dt>
+            <dd>{fill.routeNames.length > 0 ? fill.routeNames.join('、') : '（未命名鐵路）'}</dd>
+            <dt>推算長度</dt>
+            <dd>{formatKm(fill.lengthKm)}（沿鐵路）</dd>
+          </>
+        )}
         <dt>起點</dt>
         <dd>{formatLatLon(gap.from.lat, gap.from.lon)}</dd>
         <dt>終點</dt>

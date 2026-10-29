@@ -25,6 +25,23 @@ export default defineConfig({
       workbox: {
         // MapLibre 的 worker 是 .mjs，需要一起預先快取；地圖圖磚不快取（不支援離線）
         globPatterns: ['**/*.{js,mjs,css,html,svg}'],
+        runtimeCaching: [
+          {
+            // index 記錄資料產生日期，優先取得最新版
+            urlPattern: ({ url }) => url.pathname.endsWith('/rail/v1/index.json'),
+            handler: 'NetworkFirst',
+            options: { cacheName: 'rail-index' },
+          },
+          {
+            urlPattern: ({ url }) => url.pathname.includes('/rail/v1/'),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'rail-tiles',
+              expiration: { maxAgeSeconds: 30 * 24 * 60 * 60, maxEntries: 2000 },
+              cacheableResponse: { statuses: [200] },
+            },
+          },
+        ],
       },
     }),
   ],

@@ -28,6 +28,17 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npm run build
+      - name: 加入鐵路資料
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release download rail-data --pattern rail-data.tar.gz --dir "$RUNNER_TEMP"; then
+            mkdir -p dist/rail
+            tar -xzf "$RUNNER_TEMP/rail-data.tar.gz" -C dist/rail
+            ls dist/rail
+          else
+            echo "尚無鐵路資料，這次部署不含補路功能"
+          fi
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
