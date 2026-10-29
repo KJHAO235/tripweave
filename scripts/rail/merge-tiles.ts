@@ -33,6 +33,8 @@ export async function mergeTiles(inputs: string[], outDir: string): Promise<{ ti
     merged++
   }
 
+  // 所有輸入都沒有鐵路時（例如南極洲）也要輸出空的 index
+  await mkdir(join(outDir, VERSION_DIR), { recursive: true })
   const index: RailIndex = { v: TILE_FORMAT_VERSION, generated: new Date().toISOString(), tileSizeDeg: TILE_SIZE_DEG, tiles: [...sources.keys()].sort() }
   await writeFile(join(outDir, VERSION_DIR, 'index.json'), JSON.stringify(index))
   return { tiles: sources.size, merged }

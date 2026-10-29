@@ -8,6 +8,7 @@ import { mergeTiles } from './merge-tiles.ts'
 const edge = (id: number, name: string): RailEdge => ({ id, a: id, b: id + 1, service: 0, tunnel: false, name, coords: [[141.6, 42.8], [141.61, 42.81]] })
 
 async function writeRegion(dir: string, tiles: Record<string, RailEdge[]>) {
+  await mkdir(join(dir, 'v1'), { recursive: true })
   for (const [id, edges] of Object.entries(tiles)) {
     await mkdir(join(dir, 'v1', id.split('/')[0]), { recursive: true })
     await writeFile(join(dir, 'v1', `${id}.json`), JSON.stringify(encodeTile(edges)))
@@ -27,4 +28,12 @@ test('相鄰地區的同一格子合併，重複的邊只留一條', async () =>
   expect(merged.map((e) => e.id).sort()).toEqual([1, 2, 3])
   const index = JSON.parse(await readFile(join(root, 'out/v1/index.json'), 'utf8'))
   expect(index.tiles).toEqual(['170/566', '171/566', '172/566'])
+})
+
+test('所有輸入都沒有鐵路時，輸出空的 index（例如南極洲）', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'merge-tiles-empty-'))
+  await writeRegion(join(root, 'empty'), {})
+  expect(await mergeTiles([join(root, 'empty')], join(root, 'out'))).toEqual({ tiles: 0, merged: 0 })
+  const index = JSON.parse(await readFile(join(root, 'out/v1/index.json'), 'utf8'))
+  expect(index.tiles).toEqual([])
 })
