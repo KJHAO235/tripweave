@@ -2,9 +2,9 @@
 
 ## 1. 資料管線基礎
 
-- [ ] 1.1 安裝 osmium-tool（執行前先向使用者確認），驗證 `osmium --version` 可執行
-- [ ] 1.2 建立 `scripts/rail/regions.json`（`asia/japan`、`asia/taiwan`）與 `scripts/rail/` 的 TypeScript 設定，腳本以 Node 24 直接執行 `.ts`，驗證 `node scripts/rail/build-tiles.ts --help` 可執行且 `npx tsc -b` 通過
-- [ ] 1.3 撰寫 `scripts/rail/fetch-region.sh`：下載 Geofabrik 檔案（User-Agent 標示專案網址）、osmium 篩選 design 第 2 節的鐵路種類、輸出含節點座標的 OPL、刪除 pbf，驗證台灣跑完後產出 OPL 檔且 pbf 已刪除
+- [x] 1.1 安裝 osmium-tool（執行前先向使用者確認），驗證 `osmium --version` 可執行
+- [x] 1.2 建立 `scripts/rail/regions.json`（`asia/japan`、`asia/taiwan`）與 `scripts/rail/` 的 TypeScript 設定，腳本以 Node 24 直接執行 `.ts`，驗證 `node scripts/rail/build-tiles.ts --help` 可執行且 `npx tsc -b` 通過
+- [x] 1.3 撰寫 `scripts/rail/fetch-region.sh`：下載 Geofabrik 檔案（User-Agent 標示專案網址）、osmium 篩選 design 第 2 節的鐵路種類、輸出含節點座標的 OPL、刪除 pbf，驗證台灣跑完後產出 OPL 檔且 pbf 已刪除
 
 ## 2. 網格產生
 
