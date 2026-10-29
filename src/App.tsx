@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react'
 import { parseXmlInBrowser } from './browserXml'
 import { GapPanel } from './components/GapPanel'
-import { Legend } from './components/Legend'
 import { ImportButton } from './components/ImportButton'
 import { TrackMap } from './components/TrackMap'
 import { DEFAULT_GAP_THRESHOLD_KM, detectGaps } from './core/gaps'
@@ -68,7 +67,6 @@ export default function App() {
         )}
       </header>
 
-      {track && <Legend />}
 
       {error && (
         <div className="error" role="alert">

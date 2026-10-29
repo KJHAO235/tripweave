@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { formatDuration, formatKm, formatLatLon, formatSpeed } from '../core/format'
 import type { Gap } from '../core/gaps'
 import type { RailFill } from '../core/rail/fill'
+import { Legend } from './Legend'
 
 const THRESHOLD_STEPS_KM = [0.5, 1, 2, 3, 5, 10, 20, 50]
 
@@ -47,6 +48,8 @@ export function GapPanel({
         </span>
         <span className="panel-toggle">{expanded ? '收合' : '展開'}</span>
       </button>
+      {/* 圖例放在面板內，避免蓋住地圖上的軌跡 */}
+      <Legend />
 
       {expanded && (
         <>

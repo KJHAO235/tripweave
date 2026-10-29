@@ -1,19 +1,19 @@
 export function Legend() {
   return (
-    <aside className="legend" aria-label="圖例">
-      <div>
+    <div className="legend" aria-label="圖例">
+      <span>
         <span className="swatch recorded" />
         實際記錄
-      </div>
-      <div>
+      </span>
+      <span>
         <span className="swatch inferred" />
         推算（鐵路）
-      </div>
-      <div>
+      </span>
+      <span>
         <span className="swatch gap" />
         缺口
-      </div>
+      </span>
       <small>鐵路資料 © OpenStreetMap 貢獻者</small>
-    </aside>
+    </div>
   )
 }
