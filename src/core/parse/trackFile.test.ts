@@ -56,6 +56,11 @@ describe('KML', () => {
     ])
   })
 
+  test('每個段落都記錄來源檔名', () => {
+    const track = loadTestTrack('Day1+2.kml')
+    expect(track.segments.map((s) => s.source)).toEqual(['Day1+2', 'Day1+2'])
+  })
+
   test('沒有副檔名時依內容辨識為 KML', () => {
     const track = parseOk('export', `<?xml version="1.0"?><kml ${KML_NS}><Placemark><LineString><coordinates>2,1 2,1.1</coordinates></LineString></Placemark></kml>`)
     expect(track.segments).toHaveLength(1)
@@ -114,7 +119,7 @@ describe('GPX', () => {
       'both.gpx',
       `<gpx ${GPX_NS}><rte><rtept lat="5" lon="5"/><rtept lat="5.1" lon="5"/></rte><trk><trkseg><trkpt lat="1" lon="2"/><trkpt lat="1.1" lon="2"/></trkseg></trk></gpx>`,
     )
-    expect(track.segments).toEqual([{ points: [{ lat: 1, lon: 2 }, { lat: 1.1, lon: 2 }] }])
+    expect(track.segments).toEqual([{ source: 'both', points: [{ lat: 1, lon: 2 }, { lat: 1.1, lon: 2 }] }])
   })
 })
 

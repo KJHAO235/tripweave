@@ -39,13 +39,15 @@ export function parseTrackFile(fileName: string, text: string, parseXml: ParseXm
   else if (root === 'gpx') features = selectGpxFeatures(gpx(doc).features)
   else return fail('corrupt')
 
+  const source = baseName(fileName)
   const segments = features
     .flatMap((feature) => segmentsOf(feature.geometry, feature.properties?.coordinateProperties?.times))
     .filter((segment) => segment.points.length > 0)
+    .map((segment) => ({ ...segment, source }))
   if (segments.length === 0) return fail('no-track')
 
   const hasTime = segments.every((segment) => segment.points.every((point) => point.time !== undefined))
-  return { ok: true, track: { name: baseName(fileName), segments, hasTime } }
+  return { ok: true, track: { name: source, segments, hasTime } }
 }
 
 function detectFormat(fileName: string, text: string): Format | null {
