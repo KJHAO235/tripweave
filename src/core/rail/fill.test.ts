@@ -89,7 +89,7 @@ describe('補路判斷', () => {
   })
 
   test('缺口超過 300 km 不取網格（多半是飛機）', () => {
-    const gap = { id: 'x', from: { segment: 0, index: 0, lat: 0, lon: 0 }, to: { segment: 0, index: 1, lat: 0, lon: 3 }, distanceKm: 333, isSegmentBoundary: false }
+    const gap = { id: 'x', from: { segment: 0, index: 0, lat: 0, lon: 0 }, to: { segment: 0, index: 1, lat: 0, lon: 3 }, distanceKm: 333, isSegmentBoundary: false, isFileBoundary: false }
     expect(tilesForGap(gap)).toBeNull()
   })
 })

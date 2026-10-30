@@ -21,6 +21,8 @@ export interface Gap {
   speedKmh?: number
   /** 缺口位於兩個段落的交界 */
   isSegmentBoundary: boolean
+  /** 缺口位於兩個不同檔案之間（多檔匯入時） */
+  isFileBoundary: boolean
 }
 
 /** 找出相鄰點直線距離超過門檻的缺口，依距離由大到小排序 */
@@ -34,7 +36,8 @@ export function detectGaps(track: Track, thresholdKm = DEFAULT_GAP_THRESHOLD_KM)
       if (previous) {
         const distance = distanceKm(previous.point, point)
         if (distance > thresholdKm) {
-          gaps.push(buildGap(previous, { ref, point }, distance, track.hasTime))
+          const fileBoundary = previous.ref.segment !== segmentIndex && track.segments[previous.ref.segment].source !== segment.source
+          gaps.push(buildGap(previous, { ref, point }, distance, track.hasTime, fileBoundary))
         }
       }
       previous = { ref, point }
@@ -49,6 +52,7 @@ function buildGap(
   to: { ref: PointRef; point: TrackPoint },
   distance: number,
   hasTime: boolean,
+  isFileBoundary: boolean,
 ): Gap {
   const gap: Gap = {
     id: `${from.ref.segment}:${from.ref.index}`,
@@ -56,6 +60,7 @@ function buildGap(
     to: to.ref,
     distanceKm: distance,
     isSegmentBoundary: from.ref.segment !== to.ref.segment,
+    isFileBoundary,
   }
   if (hasTime && from.point.time !== undefined && to.point.time !== undefined) {
     gap.durationSec = (to.point.time - from.point.time) / 1000

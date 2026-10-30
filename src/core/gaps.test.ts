@@ -106,3 +106,42 @@ test('偵測前後原始軌跡點的數量與座標完全相同', () => {
   expect(gaps.length).toBeGreaterThan(0)
   expect(day12).toEqual(before)
 })
+
+describe('檔案之間的缺口', () => {
+  test('合併 8/14 與 8/15 時，札幌處（相距約 0.1 km）不形成缺口', async () => {
+    const { readFileSync } = await import('node:fs')
+    const { parseTrackFiles } = await import('./parse/mergeTracks')
+    const { parseXmlForTest } = await import('../test/parseXml')
+    const read = (name: string) => ({ name, text: readFileSync(`test-data/${name}`, 'utf8') })
+    const { track } = parseTrackFiles([read('relive-2024-08-14.gpx'), read('relive-2024-08-15.gpx')], parseXmlForTest)
+    const gaps = detectGaps(track!)
+    expect(gaps.some((g) => g.isFileBoundary)).toBe(false)
+    expect(gaps.every((g) => !g.isSegmentBoundary)).toBe(true)
+  })
+
+  test('兩個檔案相距 200 km 時形成一個「檔案之間」的缺口', () => {
+    const km200 = 200 / 111.195
+    const merged: Track = {
+      hasTime: false,
+      segments: [
+        { source: 'a', points: [{ lat: 0, lon: 0 }, { lat: 0.001, lon: 0 }] },
+        { source: 'b', points: [{ lat: 0.001 + km200, lon: 0 }, { lat: 0.002 + km200, lon: 0 }] },
+      ],
+    }
+    const gaps = detectGaps(merged)
+    expect(gaps).toHaveLength(1)
+    expect(gaps[0]).toMatchObject({ isFileBoundary: true, isSegmentBoundary: true })
+    expect(gaps[0].distanceKm).toBeCloseTo(200, 0)
+  })
+
+  test('同一個檔案內的兩個段落之間不算檔案之間', () => {
+    const gaps = detectGaps({
+      hasTime: false,
+      segments: [
+        { source: 'a', points: [{ lat: 0, lon: 0 }, { lat: 0.001, lon: 0 }] },
+        { source: 'a', points: [{ lat: 0.5, lon: 0 }, { lat: 0.501, lon: 0 }] },
+      ],
+    })
+    expect(gaps[0]).toMatchObject({ isFileBoundary: false, isSegmentBoundary: true })
+  })
+})

@@ -5,8 +5,10 @@ import { ImportButton } from './components/ImportButton'
 import { TrackMap } from './components/TrackMap'
 import { DEFAULT_GAP_THRESHOLD_KM, detectGaps } from './core/gaps'
 import { toMapFeatures } from './core/mapFeatures'
-import { parseTrackFile } from './core/parse/trackFile'
-import { trackBounds, type Track } from './core/track'
+import { formatDateRange } from './core/format'
+import { combineImports, type ImportFailure } from './core/parse/mergeTracks'
+import { parseTrackFile, type ImportResult } from './core/parse/trackFile'
+import { trackBounds, tripLabel, type Track } from './core/track'
 import { setHasUserData } from './pwa'
 import { useRailFills } from './useRailFills'
 
@@ -16,8 +18,8 @@ export default function App() {
   const [selectedGapId, setSelectedGapId] = useState<string | null>(null)
   const [focusRequest, setFocusRequest] = useState<{ coords: [number, number][] } | null>(null)
   const [panelExpanded, setPanelExpanded] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
+  const [errors, setErrors] = useState<string[]>([])
+  const [progress, setProgress] = useState<{ current: number; total: number } | null>(null)
 
   const gaps = useMemo(() => (track ? detectGaps(track, thresholdKm) : []), [track, thresholdKm])
   const { fills, pending, total } = useRailFills(track, gaps)
@@ -27,22 +29,30 @@ export default function App() {
 
   useEffect(() => setHasUserData(track !== null), [track])
 
-  async function handleFile(file: File) {
-    setLoading(true)
+  async function handleFiles(files: File[]) {
+    const results: { name: string; result: ImportResult }[] = []
     try {
-      const result = parseTrackFile(file.name, await file.text(), parseXmlInBrowser)
-      if (!result.ok) {
-        // 匯入失敗時保留目前的軌跡
-        setError(result.message)
-        return
+      for (const [i, file] of files.entries()) {
+        setProgress({ current: i + 1, total: files.length })
+        // 讓出主執行緒，進度才能更新、畫面不會凍結
+        await new Promise((resolve) => setTimeout(resolve, 0))
+        let result: ImportResult
+        try {
+          result = parseTrackFile(file.name, await file.text(), parseXmlInBrowser)
+        } catch {
+          result = { ok: false, code: 'corrupt', message: '無法讀取檔案' }
+        }
+        results.push({ name: file.name, result })
       }
-      setError(null)
-      setTrack(result.track)
-      setSelectedGapId(null)
-    } catch {
-      setError('無法讀取檔案')
+      const { track: merged, failures } = combineImports(results)
+      setErrors(formatFailures(failures, files.length))
+      // 全部失敗時保留目前的旅程
+      if (merged) {
+        setTrack(merged)
+        setSelectedGapId(null)
+      }
     } finally {
-      setLoading(false)
+      setProgress(null)
     }
   }
 
@@ -60,9 +70,13 @@ export default function App() {
       />
 
       <header className="toolbar">
-        <ImportButton onFile={handleFile} />
-        {loading && <span className="file-name">讀取中…</span>}
-        {!loading && track?.name && <span className="file-name">{track.name}</span>}
+        <ImportButton onFiles={handleFiles} />
+        {progress && (
+          <span className="file-name">
+            讀取中 {progress.current}/{progress.total}
+          </span>
+        )}
+        {!progress && track && <span className="file-name">{tripLabel(track, formatDateRange)}</span>}
         {pending > 0 && (
           <span className="file-name progress">
             沿鐵路補齊中 {total - pending}/{total}
@@ -71,10 +85,14 @@ export default function App() {
       </header>
 
 
-      {error && (
+      {errors.length > 0 && (
         <div className="error" role="alert">
-          <span>{error}</span>
-          <button onClick={() => setError(null)} aria-label="關閉錯誤訊息">
+          <ul>
+            {errors.map((message) => (
+              <li key={message}>{message}</li>
+            ))}
+          </ul>
+          <button onClick={() => setErrors([])} aria-label="關閉錯誤訊息">
             ✕
           </button>
         </div>
@@ -106,4 +124,10 @@ export default function App() {
       <footer className="build-info">build {__BUILD_TIME__}</footer>
     </div>
   )
+}
+
+/** 單檔時只顯示原因；多檔時每個失敗的檔案一行「檔名：原因」 */
+function formatFailures(failures: ImportFailure[], fileCount: number): string[] {
+  if (fileCount === 1) return failures.map((f) => f.message)
+  return failures.map((f) => `${f.name}：${f.message}`)
 }

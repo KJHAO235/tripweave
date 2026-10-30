@@ -77,7 +77,11 @@ export function GapPanel({
                     <span className={fill ? 'distance filled' : 'distance'}>{formatKm(gap.distanceKm)}</span>
                     {gap.durationSec !== undefined && <span className="meta">{formatDuration(gap.durationSec)}</span>}
                     {fill && <span className="tag inferred">鐵路 {fill.routeNames[0] ?? ''}</span>}
-                    {gap.isSegmentBoundary && <span className="tag">段落交界</span>}
+                    {gap.isFileBoundary ? (
+                      <span className="tag">檔案之間</span>
+                    ) : (
+                      gap.isSegmentBoundary && <span className="tag">段落交界</span>
+                    )}
                   </button>
                 </li>
               )
@@ -98,6 +102,7 @@ function GapDetail({ gap, fill, onClose }: { gap: Gap; fill: RailFill | undefine
           ✕
         </button>
       </div>
+      {gap.isFileBoundary && <p className="gap-note">位於兩個檔案之間</p>}
       <dl>
         {fill && (
           <>
