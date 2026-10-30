@@ -2,8 +2,8 @@
 
 ## 1. 測試資料
 
-- [ ] 1.1 把 `有趣的冒險.gpx`、`2024/08/15日本四極點Day2.gpx` 複製為 `test-data/relive-2024-08-14.gpx`、`test-data/relive-2024-08-15.gpx`，驗證兩檔都能用 `parseTrackFile` 解析且 `hasTime` 為 true
-- [ ] 1.2 用 8/14 的 GPX 跑完整沿鐵路補路（使用 `test-data/rail`），驗證補齊的缺口與 `Day1+2.kml` 的結果一致，苫小牧到札幌在有時間資料時仍沿千歲線補齊
+- [x] 1.1 把 `有趣的冒險.gpx`、`2024/08/15日本四極點Day2.gpx` 複製為 `test-data/relive-2024-08-14.gpx`、`test-data/relive-2024-08-15.gpx`，驗證兩檔都能用 `parseTrackFile` 解析且 `hasTime` 為 true
+- [x] 1.2 用 8/14 的 GPX 跑完整沿鐵路補路（使用 `test-data/rail`），驗證缺口與 `Day1+2.kml` 相同、補齊結果一致（例外：上野一帶 2 km 花 17 分鐘的缺口，有時間資料後因速度低於 10 km/h 不補），苫小牧到札幌在有時間資料時仍沿千歲線補齊
 
 ## 2. 合併多個檔案（track-import）
 
