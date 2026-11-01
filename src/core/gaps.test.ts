@@ -145,3 +145,24 @@ describe('檔案之間的缺口', () => {
     expect(gaps[0]).toMatchObject({ isFileBoundary: false, isSegmentBoundary: true })
   })
 })
+
+describe('有時間與沒有時間的段落混合', () => {
+  test('只看缺口兩端的點：有時間段落內的缺口有時長，沒有時間的段落與交界處沒有', () => {
+    const t0 = Date.parse('2024-08-14T10:00:00Z')
+    const km = (n: number) => n / 111.195
+    const track: Track = {
+      hasTime: false,
+      segments: [
+        { source: 'gpx', points: [{ lat: 0, lon: 0, time: t0 }, { lat: km(50), lon: 0, time: t0 + 1800_000 }] },
+        { source: 'kml', points: [{ lat: km(100), lon: 0 }, { lat: km(150), lon: 0 }] },
+      ],
+    }
+    const gaps = detectGaps(track).sort((a, b) => a.from.lat - b.from.lat)
+    expect(gaps).toHaveLength(3)
+    expect(gaps[0].durationSec).toBe(1800)
+    expect(gaps[0].speedKmh).toBeCloseTo(100, 0)
+    expect(gaps[1]).toMatchObject({ isFileBoundary: true })
+    expect(gaps[1]).not.toHaveProperty('durationSec')
+    expect(gaps[2]).not.toHaveProperty('durationSec')
+  })
+})

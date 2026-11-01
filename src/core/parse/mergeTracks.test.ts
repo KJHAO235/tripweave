@@ -87,3 +87,9 @@ describe('旅程名稱', () => {
     expect(tripLabel(track, range)).toBe('2 個檔案')
   })
 })
+
+test('混合沒有時間的 KML 時，日期範圍仍以有時間的點計算', () => {
+  const { track } = parseTrackFiles([read('relive-2024-08-14.gpx'), read('Day1+2.kml'), read('relive-2024-08-15.gpx')], parseXmlForTest)
+  expect(track!.hasTime).toBe(false)
+  expect(tripLabel(track!, (a, b) => formatDateRange(a, b, 'Asia/Taipei'))).toBe('3 個檔案 · 2024/8/14–8/15')
+})

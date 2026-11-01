@@ -1,5 +1,22 @@
 # Spec Delta
 
+## MODIFIED Requirements
+
+### Requirement: 缺口資訊
+每個缺口 SHALL 提供：起點與終點座標、直線距離。缺口兩端的點都有時間時，MUST 另外提供缺口的時間長度與推算的平均速度；是否提供只看這兩個點，不受旅程中其他檔案或點有沒有時間影響。
+
+#### Scenario: 沒有時間資料的缺口
+- **WHEN** 偵測 `Day1+2.kml` 的缺口
+- **THEN** 每個缺口顯示起訖座標與直線距離，不顯示時間長度與速度
+
+#### Scenario: 有時間資料的缺口
+- **WHEN** 缺口兩端的點分別在 10:00 與 10:30，直線距離 50 公里
+- **THEN** 缺口顯示時間長度 30 分鐘、平均速度約 100 km/h
+
+#### Scenario: 有時間與沒有時間的檔案混合
+- **WHEN** 合併 13 個有時間的 GPX 與 1 個沒有時間的 KML
+- **THEN** GPX 內的缺口仍顯示時間長度與速度；KML 內與 KML 交界處的缺口不顯示
+
 ## ADDED Requirements
 
 ### Requirement: 標示檔案之間的缺口

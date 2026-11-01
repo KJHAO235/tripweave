@@ -42,14 +42,20 @@ export function trackBounds(track: Track): Bounds | null {
   return Number.isFinite(west) ? [[west, south], [east, north]] : null
 }
 
-/** 工具列顯示的旅程名稱：單檔用檔名；多檔為「N 個檔案」，有時間資料時加上日期範圍 */
+/** 工具列顯示的旅程名稱：單檔用檔名；多檔為「N 個檔案」，有任何時間資料時加上日期範圍 */
 export function tripLabel(track: Track, formatRange: (startMs: number, endMs: number) => string): string {
   const sources = new Set(track.segments.map((s) => s.source))
   if (sources.size <= 1) return track.name ?? ''
   const label = `${sources.size} 個檔案`
-  if (!track.hasTime) return label
-  const first = track.segments[0].points[0].time!
-  const lastSegment = track.segments[track.segments.length - 1]
-  const last = lastSegment.points[lastSegment.points.length - 1].time!
-  return `${label} · ${formatRange(first, last)}`
+  // 有些檔案可能沒有時間（例如 Google 我的地圖匯出的 KML），只用有時間的點
+  let first = Infinity
+  let last = -Infinity
+  for (const segment of track.segments) {
+    for (const { time } of segment.points) {
+      if (time === undefined) continue
+      if (time < first) first = time
+      if (time > last) last = time
+    }
+  }
+  return Number.isFinite(first) ? `${label} · ${formatRange(first, last)}` : label
 }
