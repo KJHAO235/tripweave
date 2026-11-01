@@ -68,10 +68,14 @@ export function addTrackLayers(map: MapLibreMap) {
   })
 }
 
-export function setTrackData(map: MapLibreMap, features: MapFeatures | null) {
-  ;(map.getSource(SOURCE_RECORDED) as GeoJSONSource).setData(features?.recorded ?? EMPTY)
-  ;(map.getSource(SOURCE_GAPS) as GeoJSONSource).setData(features?.gaps ?? EMPTY)
-  ;(map.getSource(SOURCE_INFERRED) as GeoJSONSource).setData(features?.inferred ?? EMPTY)
+/** 實際記錄的路段資料量大（多日旅程可達數十萬點），只在軌跡或缺口改變時更新 */
+export function setRecordedData(map: MapLibreMap, recorded: MapFeatures['recorded'] | null) {
+  ;(map.getSource(SOURCE_RECORDED) as GeoJSONSource).setData(recorded ?? EMPTY)
+}
+
+export function setOverlayData(map: MapLibreMap, overlay: Pick<MapFeatures, 'gaps' | 'inferred'> | null) {
+  ;(map.getSource(SOURCE_GAPS) as GeoJSONSource).setData(overlay?.gaps ?? EMPTY)
+  ;(map.getSource(SOURCE_INFERRED) as GeoJSONSource).setData(overlay?.inferred ?? EMPTY)
 }
 
 export function setSelectedGap(map: MapLibreMap, gapId: string | null) {

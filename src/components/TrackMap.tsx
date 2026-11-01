@@ -6,10 +6,11 @@ import type { MapFeatures } from '../core/mapFeatures'
 import type { Bounds } from '../core/track'
 import { MAP_STYLE_URL } from '../map/style'
 import '../map/worker'
-import { addTrackLayers, LAYER_GAPS_HIT, LAYER_INFERRED_HIT, setSelectedGap, setTrackData } from '../map/trackLayers'
+import { addTrackLayers, LAYER_GAPS_HIT, LAYER_INFERRED_HIT, setOverlayData, setRecordedData, setSelectedGap } from '../map/trackLayers'
 
 interface Props {
-  features: MapFeatures | null
+  recorded: MapFeatures['recorded'] | null
+  overlay: Pick<MapFeatures, 'gaps' | 'inferred'> | null
   /** 匯入新軌跡時變更，地圖會縮放到這個範圍 */
   bounds: Bounds | null
   selectedGap: Gap | null
@@ -23,7 +24,7 @@ function padding() {
   return { top: 72, left: 32, right: 32, bottom: Math.round(window.innerHeight * 0.45) + 24 }
 }
 
-export function TrackMap({ features, bounds, selectedGap, focusRequest, onSelectGap }: Props) {
+export function TrackMap({ recorded, overlay, bounds, selectedGap, focusRequest, onSelectGap }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<MapLibreMap | null>(null)
   const [ready, setReady] = useState(false)
@@ -64,8 +65,12 @@ export function TrackMap({ features, bounds, selectedGap, focusRequest, onSelect
   }, [])
 
   useEffect(() => {
-    if (ready) setTrackData(mapRef.current!, features)
-  }, [ready, features])
+    if (ready) setRecordedData(mapRef.current!, recorded)
+  }, [ready, recorded])
+
+  useEffect(() => {
+    if (ready) setOverlayData(mapRef.current!, overlay)
+  }, [ready, overlay])
 
   useEffect(() => {
     if (ready && bounds) mapRef.current!.fitBounds(bounds, { padding: padding(), duration: 0 })

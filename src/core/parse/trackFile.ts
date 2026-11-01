@@ -24,12 +24,23 @@ type Format = 'kml' | 'gpx'
 export function parseTrackFile(fileName: string, text: string, parseXml: ParseXml): ImportResult {
   if (!detectFormat(fileName, text)) return fail('unsupported-format')
 
+  // GPX 結構單純，直接掃描文字比建立 XML 文件快數十倍
+  if (/<gpx[\s>]/.test(text)) {
+    const segments = scanGpx(text)
+    if (segments) return toResult(fileName, segments)
+  }
+
   let doc: Document
   try {
     doc = parseXml(text)
   } catch {
     return fail('corrupt')
   }
+  return parseTrackDocument(fileName, doc)
+}
+
+/** 以 togeojson 解析已建立的 XML 文件；KML 與無法直接掃描的 GPX 走這條路 */
+export function parseTrackDocument(fileName: string, doc: Document): ImportResult {
   if (doc.getElementsByTagName('parsererror').length > 0) return fail('corrupt')
 
   // 以實際內容的根元素決定解析方式，副檔名只用來初步篩選
@@ -39,15 +50,55 @@ export function parseTrackFile(fileName: string, text: string, parseXml: ParseXm
   else if (root === 'gpx') features = selectGpxFeatures(gpx(doc).features)
   else return fail('corrupt')
 
-  const source = baseName(fileName)
-  const segments = features
-    .flatMap((feature) => segmentsOf(feature.geometry, feature.properties?.coordinateProperties?.times))
-    .filter((segment) => segment.points.length > 0)
-    .map((segment) => ({ ...segment, source }))
-  if (segments.length === 0) return fail('no-track')
+  const segments = features.flatMap((feature) =>
+    segmentsOf(feature.geometry, feature.properties?.coordinateProperties?.times),
+  )
+  return toResult(fileName, segments)
+}
 
+function toResult(fileName: string, rawSegments: Segment[]): ImportResult {
+  const source = baseName(fileName)
+  const segments = rawSegments.filter((segment) => segment.points.length > 0).map((segment) => ({ ...segment, source }))
+  if (segments.length === 0) return fail('no-track')
   const hasTime = segments.every((segment) => segment.points.every((point) => point.time !== undefined))
   return { ok: true, track: { name: source, segments, hasTime } }
+}
+
+const POINT = /<(trkpt|rtept)\b([^>]*?)(?:\/>|>([\s\S]*?)<\/\1\s*>)/g
+const LAT = /\blat\s*=\s*["']([^"']*)["']/
+const LON = /\blon\s*=\s*["']([^"']*)["']/
+const ELE = /<ele\b[^>]*>([^<]*)<\/ele\s*>/
+const TIME = /<time\b[^>]*>([^<]*)<\/time\s*>/
+
+/**
+ * 直接掃描 GPX 文字，規則與 togeojson + selectGpxFeatures 相同：有 trk 時讀每個 trkseg，否則讀 rte；
+ * 少於兩點的段落略過。掃不到任何點但文字中有點（例如帶命名空間前綴）時回傳 null，改用 togeojson
+ */
+function scanGpx(text: string): Segment[] | null {
+  const blocks = /<trk[\s>]/.test(text)
+    ? [...text.matchAll(/<trkseg\b[^>]*>([\s\S]*?)<\/trkseg\s*>/g)].map((m) => m[1])
+    : [...text.matchAll(/<rte\b[^>]*>([\s\S]*?)<\/rte\s*>/g)].map((m) => m[1])
+
+  const segments: Segment[] = []
+  for (const block of blocks) {
+    const points: TrackPoint[] = []
+    for (const [, , attrs, body] of block.matchAll(POINT)) {
+      const lat = Number(LAT.exec(attrs)?.[1])
+      const lon = Number(LON.exec(attrs)?.[1])
+      if (!isValidCoordinate(lat, lon)) continue
+      const point: TrackPoint = { lat, lon }
+      const eleText = body ? ELE.exec(body)?.[1] : undefined
+      const ele = eleText?.trim() ? Number(eleText) : NaN
+      if (Number.isFinite(ele)) point.ele = ele
+      const time = Date.parse((body ? TIME.exec(body)?.[1] : undefined) ?? '')
+      if (Number.isFinite(time)) point.time = time
+      points.push(point)
+    }
+    if (points.length >= 2) segments.push({ points })
+  }
+
+  if (segments.length === 0 && /trkpt|rtept/.test(text) && !/<(trkpt|rtept)\b/.test(text)) return null
+  return segments
 }
 
 function detectFormat(fileName: string, text: string): Format | null {

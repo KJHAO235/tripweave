@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { loadTestTrack, parseXmlForTest } from '../../test/parseXml'
-import { parseTrackFile } from './trackFile'
+import { parseTrackDocument, parseTrackFile } from './trackFile'
 
 const KML_NS = 'xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2"'
 const GPX_NS = 'xmlns="http://www.topografix.com/GPX/1/1"'
@@ -147,5 +147,31 @@ describe('錯誤處理', () => {
   test('副檔名是 .gpx 但內容不是 XML 時回報檔案損毀', () => {
     const result = parse('fake.gpx', 'hello')
     expect(result).toMatchObject({ ok: false, code: 'corrupt' })
+  })
+})
+
+describe('GPX 直接掃描與 togeojson 結果一致', () => {
+  const both = (fileName: string, text: string) => [parse(fileName, text), parseTrackDocument(fileName, parseXmlForTest(text))]
+
+  test.each(['relive-2024-08-14.gpx', 'relive-2024-08-15.gpx'])('%s 逐點相同', async (name) => {
+    const { readFileSync } = await import('node:fs')
+    const [fast, dom] = both(name, readFileSync(`test-data/${name}`, 'utf8'))
+    expect(fast).toEqual(dom)
+  })
+
+  test.each([
+    ['含時間與海拔', `<gpx ${GPX_NS}><trk><trkseg><trkpt lat="1" lon="2"><ele>5</ele><time>2024-01-01T10:00:00Z</time></trkpt><trkpt lat='1.1' lon='2.1'><time>2024-01-01T10:01:00Z</time></trkpt></trkseg></trk></gpx>`],
+    ['多個 trk 與 trkseg', `<gpx ${GPX_NS}><trk><trkseg><trkpt lat="1" lon="2"/><trkpt lat="1.1" lon="2"/></trkseg></trk><trk><trkseg><trkpt lat="3" lon="4"/><trkpt lat="3.1" lon="4"/></trkseg><trkseg><trkpt lat="5" lon="6"/></trkseg></trk></gpx>`],
+    ['只有 rte', `<gpx ${GPX_NS}><wpt lat="9" lon="9"/><rte><rtept lat="1" lon="2"/><rtept lat="1.2" lon="2"/></rte></gpx>`],
+    ['點的內容是空的', `<gpx ${GPX_NS}><trk><trkseg><trkpt lat="1" lon="2"></trkpt><trkpt lat="1.1" lon="2"><ele></ele></trkpt></trkseg></trk></gpx>`],
+    ['屬性順序相反、超出範圍的點', `<gpx ${GPX_NS}><trk><trkseg><trkpt lon="2" lat="1"/><trkpt lat="95" lon="2"/><trkpt lon="2.1" lat="1.1"/></trkseg></trk></gpx>`],
+  ])('%s', (_, text) => {
+    const [fast, dom] = both('x.gpx', text)
+    expect(fast).toEqual(dom)
+  })
+
+  test('有命名空間前綴時退回 togeojson，仍能正確解析', () => {
+    const text = `<gpx:gpx xmlns:gpx="http://www.topografix.com/GPX/1/1"><gpx:trk><gpx:trkseg><gpx:trkpt lat="1" lon="2"/><gpx:trkpt lat="1.1" lon="2"/></gpx:trkseg></gpx:trk></gpx:gpx>`
+    expect(parse('ns.gpx', text)).toEqual(parseTrackDocument('ns.gpx', parseXmlForTest(text)))
   })
 })

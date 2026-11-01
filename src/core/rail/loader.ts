@@ -4,10 +4,15 @@ import { decodeTile, tileId, tilePath, TILE_FORMAT_VERSION, type RailEdge, type 
 export type FetchRailJson = (path: string) => Promise<unknown>
 
 const MAX_CONCURRENT = 4
+/**
+ * 只保留最近使用的這麼多個網格；快取存未解碼的原始資料（解碼後的座標會膨脹數倍），
+ * 移出的網格再需要時由 service worker 快取重新取得
+ */
+export const MAX_CACHED_TILES = 64
 
 export class RailTileLoader {
   private index: Promise<Set<string> | null> | undefined
-  private readonly tiles = new Map<string, Promise<RailEdge[]>>()
+  private readonly tiles = new Map<string, Promise<RailTile | null>>()
   private active = 0
   private readonly queue: (() => void)[] = []
   private readonly fetchJson: FetchRailJson
@@ -24,26 +29,35 @@ export class RailTileLoader {
     return this.index
   }
 
+  /** 先在背景下載網格放進快取（不解碼），讓下載和補路計算同時進行 */
+  async prefetch(keys: TileKey[]): Promise<void> {
+    const index = await this.loadIndex()
+    if (!index) return
+    for (const key of keys) if (index.has(tileId(key))) this.loadTile(key).catch(() => {})
+  }
+
   /** 下載指定網格的鐵路邊；不在 index 內的網格不發請求 */
   async loadTiles(keys: TileKey[]): Promise<RailEdge[]> {
     const index = await this.loadIndex()
     if (!index) return []
     const covered = keys.filter((key) => index.has(tileId(key)))
-    const results = await Promise.all(covered.map((key) => this.loadTile(key)))
-    return results.flat()
+    const tiles = await Promise.all(covered.map((key) => this.loadTile(key)))
+    return tiles.flatMap((tile) => (tile ? decodeTile(tile) : []))
   }
 
-  private loadTile(key: TileKey): Promise<RailEdge[]> {
+  private loadTile(key: TileKey): Promise<RailTile | null> {
     const id = tileId(key)
     let promise = this.tiles.get(id)
-    if (!promise) {
-      promise = this.limit(async () => {
-        const data = await this.fetchJson(tilePath(key))
-        return data ? decodeTile(data as RailTile) : []
-      })
+    if (promise) {
+      // 移到最後，代表最近使用
+      this.tiles.delete(id)
+      this.tiles.set(id, promise)
+    } else {
+      promise = this.limit(async () => ((await this.fetchJson(tilePath(key))) as RailTile | null) ?? null)
       // 失敗時移除，下次需要時可以重試
       promise.catch(() => this.tiles.delete(id))
       this.tiles.set(id, promise)
+      if (this.tiles.size > MAX_CACHED_TILES) this.tiles.delete(this.tiles.keys().next().value!)
     }
     return promise
   }

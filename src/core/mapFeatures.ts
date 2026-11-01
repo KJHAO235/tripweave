@@ -25,6 +25,11 @@ export interface MapFeatures {
 }
 
 export function toMapFeatures(track: Track, gaps: Gap[], fills: ReadonlyMap<string, RailFill> = new Map()): MapFeatures {
+  return { recorded: toRecordedFeatures(track, gaps), ...toOverlayFeatures(gaps, fills) }
+}
+
+/** 實際記錄的路段（在缺口處切開）；只跟軌跡與缺口有關，補路時不需重算 */
+export function toRecordedFeatures(track: Track, gaps: Gap[]): FeatureCollection<MultiLineString> {
   // 段落內的缺口：在 from.index 與 from.index + 1 之間切開
   const cutsBySegment = new Map<number, Set<number>>()
   for (const gap of gaps) {
@@ -49,17 +54,21 @@ export function toMapFeatures(track: Track, gaps: Gap[], fills: ReadonlyMap<stri
   })
 
   return {
-    recorded: {
-      type: 'FeatureCollection',
-      features: [
-        {
-          type: 'Feature',
-          properties: {},
-          // 只有一個點的片段畫不成線；它仍是相鄰缺口的端點，會出現在缺口線上
-          geometry: { type: 'MultiLineString', coordinates: lines.filter((line) => line.length >= 2) },
-        },
-      ],
-    },
+    type: 'FeatureCollection',
+    features: [
+      {
+        type: 'Feature',
+        properties: {},
+        // 只有一個點的片段畫不成線；它仍是相鄰缺口的端點，會出現在缺口線上
+        geometry: { type: 'MultiLineString', coordinates: lines.filter((line) => line.length >= 2) },
+      },
+    ],
+  }
+}
+
+/** 缺口線與推算路段；資料量小，補路時每次更新都重算 */
+export function toOverlayFeatures(gaps: Gap[], fills: ReadonlyMap<string, RailFill>): Pick<MapFeatures, 'gaps' | 'inferred'> {
+  return {
     gaps: {
       type: 'FeatureCollection',
       features: gaps.flatMap((gap) => {

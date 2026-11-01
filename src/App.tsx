@@ -4,7 +4,7 @@ import { GapPanel } from './components/GapPanel'
 import { ImportButton } from './components/ImportButton'
 import { TrackMap } from './components/TrackMap'
 import { DEFAULT_GAP_THRESHOLD_KM, detectGaps } from './core/gaps'
-import { toMapFeatures } from './core/mapFeatures'
+import { toOverlayFeatures, toRecordedFeatures } from './core/mapFeatures'
 import { formatDateRange } from './core/format'
 import { combineImports, type ImportFailure } from './core/parse/mergeTracks'
 import { parseTrackFile, type ImportResult } from './core/parse/trackFile'
@@ -23,7 +23,9 @@ export default function App() {
 
   const gaps = useMemo(() => (track ? detectGaps(track, thresholdKm) : []), [track, thresholdKm])
   const { fills, pending, total } = useRailFills(track, gaps)
-  const features = useMemo(() => (track ? toMapFeatures(track, gaps, fills) : null), [track, gaps, fills])
+  // 實線只跟軌跡與缺口有關；補路時只重算資料量小的疊加圖層
+  const recorded = useMemo(() => (track ? toRecordedFeatures(track, gaps) : null), [track, gaps])
+  const overlay = useMemo(() => (track ? toOverlayFeatures(gaps, fills) : null), [track, gaps, fills])
   const bounds = useMemo(() => (track ? trackBounds(track) : null), [track])
   const selectedGap = gaps.find((gap) => gap.id === selectedGapId) ?? null
 
@@ -59,7 +61,8 @@ export default function App() {
   return (
     <div className="app">
       <TrackMap
-        features={features}
+        recorded={recorded}
+        overlay={overlay}
         bounds={bounds}
         selectedGap={selectedGap}
         focusRequest={focusRequest}
