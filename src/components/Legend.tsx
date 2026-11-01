@@ -14,6 +14,8 @@ export function Legend() {
         缺口
       </span>
       <small>鐵路資料 © OpenStreetMap 貢獻者</small>
+      {/* 版本資訊放在這裡，避免與工具列的旅程摘要重疊 */}
+      <small>build {__BUILD_TIME__}</small>
     </div>
   )
 }

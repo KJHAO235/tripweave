@@ -124,7 +124,6 @@ export default function App() {
         <p className="hint">點左上角「匯入軌跡」，選擇 KML 或 GPX 檔</p>
       )}
 
-      <footer className="build-info">build {__BUILD_TIME__}</footer>
     </div>
   )
 }

@@ -252,14 +252,6 @@ button {
   padding: 1px 6px;
 }
 
-.build-info {
-  position: absolute;
-  top: calc(env(safe-area-inset-top) + 16px);
-  right: 12px;
-  font-size: 10px;
-  color: var(--muted);
-  pointer-events: none;
-}
 
 .toolbar {
   flex-wrap: wrap;
