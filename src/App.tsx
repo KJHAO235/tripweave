@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { FileList } from './components/FileList'
 import { GapPanel } from './components/GapPanel'
 import { ImportButton } from './components/ImportButton'
 import { TrackMap } from './components/TrackMap'
@@ -6,7 +7,7 @@ import { TripList } from './components/TripList'
 import { DEFAULT_GAP_THRESHOLD_KM, detectGaps } from './core/gaps'
 import { toOverlayFeatures, toRecordedFeatures } from './core/mapFeatures'
 import { trackBounds, type Track } from './core/track'
-import { buildTrack, tripDisplayName } from './core/trip'
+import { buildTrack, fileOrder, tripDisplayName } from './core/trip'
 import { useRailFills } from './useRailFills'
 import { useTrips } from './useTrips'
 
@@ -32,6 +33,12 @@ export default function App() {
   const overlay = useMemo(() => (track ? toOverlayFeatures(gaps, fills) : null), [track, gaps, fills])
   const bounds = useMemo(() => (track ? trackBounds(track) : null), [track])
   const selectedGap = gaps.find((gap) => gap.id === selectedGapId) ?? null
+  // 檔案列表依合併後的順序（時間或檔名）排列
+  const orderedFiles = useMemo(() => {
+    if (!current || !track) return []
+    const byId = new Map(current.record.files.map((f) => [f.id, f]))
+    return fileOrder(track).flatMap((id) => byId.get(id) ?? [])
+  }, [current, track])
 
   return (
     <div className="app">
@@ -125,7 +132,9 @@ export default function App() {
           onClearSelection={() => setSelectedGapId(null)}
           expanded={panelExpanded}
           onToggleExpanded={() => setPanelExpanded(!panelExpanded)}
-        />
+        >
+          {current && <FileList files={orderedFiles} onRemove={(id) => void trips.removeFile(id)} />}
+        </GapPanel>
       ) : (
         trips.ready && !progress && <p className="hint">點左上角「匯入軌跡」，選擇 KML 或 GPX 檔</p>
       )}

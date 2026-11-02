@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import { formatDuration, formatKm, formatLatLon, formatSpeed } from '../core/format'
 import type { Gap } from '../core/gaps'
 import type { RailFill } from '../core/rail/fill'
@@ -16,6 +16,8 @@ interface Props {
   onClearSelection: () => void
   expanded: boolean
   onToggleExpanded: () => void
+  /** 展開時顯示在門檻上方（檔案列表） */
+  children?: ReactNode
 }
 
 export function GapPanel({
@@ -28,6 +30,7 @@ export function GapPanel({
   onClearSelection,
   expanded,
   onToggleExpanded,
+  children,
 }: Props) {
   const listRef = useRef<HTMLOListElement>(null)
   const selectedGap = gaps.find((gap) => gap.id === selectedGapId) ?? null
@@ -53,6 +56,7 @@ export function GapPanel({
 
       {expanded && (
         <>
+          {children}
           <label className="threshold">
             <span>缺口門檻：相鄰點距離超過 {thresholdKm} km</span>
             <input
