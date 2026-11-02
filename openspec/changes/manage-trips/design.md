@@ -27,11 +27,11 @@
 用原生 IndexedDB 包一層小模組（`src/storage/tripStore.ts`），只提供需要的幾個 Promise 方法。替代方案：`localStorage` 容量約 5 MB，裝不下多日 GPX；`idb`、Dexie 等函式庫好用但需要新增依賴，而這裡的操作很少。
 
 資料表：
-- `trips`：`{ id, customName?, createdAt, updatedAt }`
-- `files`：`{ id, tripId, name, text, fingerprint, addedAt }`，以 `tripId` 建索引
+- `trips`：`{ id, customName?, createdAt, updatedAt, files: [{ id, name, fingerprint, summary, addedAt }] }`
+- `fileTexts`：`{ id, tripId, text }`，以 `tripId` 建索引
 - `settings`：`lastTripId`
 
-旅程列表需要的檔案數、日期範圍不另外存，避免與檔案不同步；列表打開時由 `trips` 加上各檔的摘要計算。為了不必解析每個檔案，`files` 另存 `summary: { pointCount, firstTime?, lastTime? }`，匯入時算好。
+檔案摘要（`summary: { pointCount, firstTime?, lastTime? }`，匯入時算好）放在旅程紀錄裡，原始文字另外存：列出旅程時只讀 `trips`，不必把每個檔案的原文載入記憶體。旅程紀錄與檔案文字在同一個交易中寫入，不會不同步。
 
 ### 2. 保存原始檔案文字，開啟時重新解析
 

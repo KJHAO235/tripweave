@@ -10,9 +10,9 @@
 
 ## 2. 儲存層
 
-- [ ] 2.1 定義 `TripStore` 介面（列出旅程、讀取旅程檔案、建立旅程、加入檔案、移除檔案、改名、刪除旅程、還原、讀寫 `lastTripId`），並實作記憶體版，驗證測試：建立、加入、移除、刪除後還原的資料與原本相同
-- [ ] 2.2 以原生 IndexedDB 實作 `TripStore`（資料表 `trips`、`files`、`settings`，含版本號），啟動時呼叫 `navigator.storage.persist()`，驗證開發伺服器上 Chrome DevTools 的 Application › IndexedDB 看到正確的資料
-- [ ] 2.3 寫入失敗時（含 `QuotaExceededError`）回傳可顯示的錯誤訊息，驗證測試：記憶體版模擬寫入失敗時回傳「裝置空間不足，旅程沒有保存」
+- [x] 2.1 定義 `TripStore` 介面（列出旅程、讀取旅程檔案、建立旅程、加入檔案、移除檔案、改名、刪除旅程、還原、讀寫 `lastTripId`），並實作記憶體版，驗證測試：建立、加入、移除、刪除後還原的資料與原本相同
+- [x] 2.2 以原生 IndexedDB 實作 `TripStore`（資料表 `trips`（含檔案摘要）、`fileTexts`（原始文字）、`settings`，含版本號），啟動時呼叫 `navigator.storage.persist()`，驗證開發伺服器上 Chrome DevTools 的 Application › IndexedDB 看到正確的資料
+- [x] 2.3 寫入失敗時（含 `QuotaExceededError`）回傳可顯示的錯誤訊息，驗證測試：記憶體版模擬寫入失敗時回傳「裝置空間不足，旅程沒有保存」
 
 ## 3. 保存與開啟旅程
 
