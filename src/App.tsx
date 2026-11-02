@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { GapPanel } from './components/GapPanel'
 import { ImportButton } from './components/ImportButton'
 import { TrackMap } from './components/TrackMap'
+import { TripList } from './components/TripList'
 import { DEFAULT_GAP_THRESHOLD_KM, detectGaps } from './core/gaps'
 import { toOverlayFeatures, toRecordedFeatures } from './core/mapFeatures'
 import { trackBounds, type Track } from './core/track'
@@ -14,6 +15,7 @@ export default function App() {
   const [focusRequest, setFocusRequest] = useState<{ coords: [number, number][] } | null>(null)
   const [panelExpanded, setPanelExpanded] = useState(true)
   const [errors, setErrors] = useState<string[]>([])
+  const [listOpen, setListOpen] = useState(false)
   const trips = useTrips(setErrors)
   const { current, progress } = trips
 
@@ -52,7 +54,11 @@ export default function App() {
             {progress.label} {progress.current}/{progress.total}
           </span>
         )}
-        {!progress && current && <span className="file-name">{tripDisplayName(current.record.customName, current.record.files)}</span>}
+        {!progress && (current || trips.list.length > 0) && (
+          <button className="file-name trip-name" onClick={() => setListOpen(!listOpen)} aria-expanded={listOpen}>
+            {current ? tripDisplayName(current.record.customName, current.record.files) : '我的旅程'} ▾
+          </button>
+        )}
         {pending > 0 && (
           <span className="file-name progress">
             沿鐵路補齊中 {total - pending}/{total}
@@ -60,19 +66,46 @@ export default function App() {
         )}
       </header>
 
-
-      {errors.length > 0 && (
-        <div className="error" role="alert">
-          <ul>
-            {errors.map((message) => (
-              <li key={message}>{message}</li>
-            ))}
-          </ul>
-          <button onClick={() => setErrors([])} aria-label="關閉錯誤訊息">
-            ✕
-          </button>
-        </div>
+      {listOpen && (
+        <>
+          <div className="trip-list-backdrop" onClick={() => setListOpen(false)} />
+          <TripList
+            trips={trips.list}
+            currentId={current?.record.id ?? null}
+            onSelect={(id) => {
+              setListOpen(false)
+              if (id !== current?.record.id) void trips.openTrip(id)
+            }}
+            onRename={(name) => void trips.renameTrip(name)}
+            onDelete={(id) => void trips.deleteTrip(id)}
+            onNewTrip={(files) => {
+              setListOpen(false)
+              void trips.createTrip(files)
+            }}
+          />
+        </>
       )}
+
+      <div className="notices">
+        {errors.length > 0 && (
+          <div className="error" role="alert">
+            <ul>
+              {errors.map((message) => (
+                <li key={message}>{message}</li>
+              ))}
+            </ul>
+            <button onClick={() => setErrors([])} aria-label="關閉錯誤訊息">
+              ✕
+            </button>
+          </div>
+        )}
+        {trips.undoNotice && (
+          <div className="undo" role="status">
+            <span>{trips.undoNotice.message}</span>
+            <button onClick={trips.undoNotice.undo}>復原</button>
+          </div>
+        )}
+      </div>
 
       {track ? (
         <GapPanel

@@ -81,11 +81,22 @@ button {
   white-space: nowrap;
 }
 
-.error {
+.notices {
   position: absolute;
   top: calc(env(safe-area-inset-top) + 64px);
   left: 12px;
   right: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.notices > * {
+  pointer-events: auto;
+}
+
+.error {
   display: flex;
   justify-content: space-between;
   gap: 8px;
@@ -329,4 +340,140 @@ button {
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+.trip-name {
+  pointer-events: auto;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.trip-list-backdrop {
+  position: absolute;
+  inset: 0;
+}
+
+.trip-list {
+  position: absolute;
+  top: calc(env(safe-area-inset-top) + 60px);
+  left: 12px;
+  right: 12px;
+  max-width: 420px;
+  max-height: 60dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border-radius: 14px;
+  box-shadow: 0 4px 20px rgb(0 0 0 / 0.25);
+  overflow: hidden;
+}
+
+.rename {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* 16px 以上 iOS 才不會在聚焦時自動放大畫面 */
+.rename input {
+  font: inherit;
+  font-size: 16px;
+  color: var(--text);
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.new-trip {
+  padding: 12px 14px;
+  color: var(--blue);
+  font-weight: 600;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+
+.new-trip input {
+  display: none;
+}
+
+.trip-list ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.trip-list li {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+}
+
+.trip-list li.current {
+  background: #eff6ff;
+}
+
+.trip-select {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 12px 14px;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.trip-title {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trip-list li.current .trip-title {
+  font-weight: 700;
+}
+
+.trip-meta {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.trip-delete {
+  padding: 12px 14px;
+  background: none;
+  border: none;
+  color: var(--red);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.undo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  background: #1f2937;
+  color: #fff;
+  padding: 10px 12px;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.2);
+}
+
+.undo button {
+  background: none;
+  border: none;
+  color: #93c5fd;
+  font-weight: 600;
+  cursor: pointer;
 }
