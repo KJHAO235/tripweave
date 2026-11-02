@@ -1,11 +1,12 @@
 interface Props {
+  label: string
   onFiles: (files: File[]) => void
 }
 
-export function ImportButton({ onFiles }: Props) {
+export function ImportButton({ label, onFiles }: Props) {
   return (
     <label className="import-button">
-      匯入軌跡
+      {label}
       {/* 不設定 accept：iOS 對 .kml / .gpx 沒有內建類型，設定後檔案可能無法點選 */}
       <input
         type="file"

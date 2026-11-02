@@ -1,16 +1,22 @@
 import { registerSW } from 'virtual:pwa-register'
 
-let hasUserData = false
+let busy = false
+let updateWaiting = false
 
-/** 使用者已匯入軌跡時不自動重新整理，避免資料消失；改在下次開啟 App 時更新 */
-export function setHasUserData(value: boolean) {
-  hasUserData = value
+/**
+ * 正在讀取檔案或寫入旅程時不自動重新整理，避免中斷；結束後若有等待中的新版就更新。
+ * 旅程已保存在裝置上，重新整理後會自動回到同一趟旅程
+ */
+export function setUpdateDeferred(value: boolean) {
+  busy = value
+  if (!busy && updateWaiting) void updateSW(true)
 }
 
 const updateSW = registerSW({
   immediate: true,
   onNeedRefresh() {
-    if (!hasUserData) void updateSW(true)
+    updateWaiting = true
+    if (!busy) void updateSW(true)
   },
   onRegisteredSW(_url, registration) {
     // 從背景切回 App 時檢查是否有新版

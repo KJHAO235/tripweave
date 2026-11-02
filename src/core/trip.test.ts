@@ -2,8 +2,9 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, test } from 'vitest'
 import { loadTestTrack, parseXmlForTest } from '../test/parseXml'
 import { parseTrackFile } from './parse/trackFile'
-import type { Track } from './track'
-import { buildTrack, classifyNewFiles, fileFingerprint, fileOrder, fileSummary, tripDisplayName, type TripFile } from './trip'
+import { formatDateRange } from './format'
+import { tripLabel, type Track } from './track'
+import { buildTrack, classifyNewFiles, fileFingerprint, fileOrder, fileSummary, tripDisplayName, tripMeta, type TripFile } from './trip'
 
 const day14 = loadTestTrack('relive-2024-08-14.gpx')
 const day15 = loadTestTrack('relive-2024-08-15.gpx')
@@ -63,26 +64,39 @@ describe('fileFingerprint', () => {
 })
 
 describe('tripDisplayName', () => {
-  const two = buildTrack([file('a', '8-14.gpx', day14), file('b', '8-15.gpx', day15)])!
+  const two = [
+    { name: 'relive-2024-08-14.gpx', summary: fileSummary(day14) },
+    { name: 'relive-2024-08-15.gpx', summary: fileSummary(day15) },
+  ]
 
   test('有自訂名稱時用自訂名稱', () => {
     expect(tripDisplayName('北海道鐵道之旅', two)).toBe('北海道鐵道之旅')
   })
 
-  test('清空或只有空白時回到自動名稱', () => {
+  test('清空或只有空白時回到自動名稱，與 tripLabel 相同', () => {
+    const track = buildTrack([file('a', 'relive-2024-08-14.gpx', day14), file('b', 'relive-2024-08-15.gpx', day15)])!
+    expect(tripDisplayName('', two)).toBe(tripLabel(track, formatDateRange))
     expect(tripDisplayName('', two)).toMatch(/^2 個檔案 · 2024\/8\/1[45]/)
     expect(tripDisplayName('  ', two)).toBe(tripDisplayName(undefined, two))
   })
 
-  test('單檔時用檔名', () => {
-    expect(tripDisplayName(undefined, buildTrack([file('a', 'relive-2024-08-14.gpx', day14)])!)).toBe('relive-2024-08-14')
+  test('單檔時用不含副檔名的檔名', () => {
+    expect(tripDisplayName(undefined, [two[0]])).toBe('relive-2024-08-14')
   })
 
-  test('兩個同名的不同檔案仍算 2 個檔案', () => {
+  test('tripMeta：單檔也顯示檔案數與日期', () => {
+    expect(tripMeta([two[0]])).toBe('1 個檔案 · 2024/8/14')
+  })
+
+  test('都沒有時間時只顯示檔案數', () => {
+    expect(tripDisplayName(undefined, [{ name: 'a.kml', summary: { pointCount: 2 } }, { name: 'b.kml', summary: { pointCount: 3 } }])).toBe('2 個檔案')
+  })
+
+  test('兩個同名的不同檔案在合併軌跡中仍算 2 個檔案', () => {
     const a = parseTrackFile('Day1.kml', kml('1,1 1,1.1'), parseXmlForTest)
     const b = parseTrackFile('Day1.kml', kml('2,1 2,1.1'), parseXmlForTest)
     if (!a.ok || !b.ok) throw new Error('解析失敗')
-    expect(tripDisplayName(undefined, buildTrack([file('a', 'Day1.kml', a.track), file('b', 'Day1.kml', b.track)])!)).toBe('2 個檔案')
+    expect(tripLabel(buildTrack([file('a', 'Day1.kml', a.track), file('b', 'Day1.kml', b.track)])!, formatDateRange)).toBe('2 個檔案')
   })
 })
 

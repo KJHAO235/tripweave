@@ -1,7 +1,7 @@
 import { formatDateRange } from './format'
 import { mergeTracks, type ImportFailure } from './parse/mergeTracks'
-import type { ImportResult } from './parse/trackFile'
-import { countPoints, tripLabel, type Track } from './track'
+import { baseName, type ImportResult } from './parse/trackFile'
+import { countPoints, type Track } from './track'
 
 /** 旅程中的一個檔案：解析後的軌跡加上在旅程中的 id */
 export interface TripFile {
@@ -66,9 +66,22 @@ export function fileFingerprint(track: Track): string {
   return parts.join('|')
 }
 
-/** 工具列與旅程列表顯示的名稱：有自訂名稱用自訂名稱，否則用自動名稱 */
-export function tripDisplayName(customName: string | undefined, track: Track): string {
-  return customName?.trim() || tripLabel(track, formatDateRange)
+/**
+ * 工具列與旅程列表顯示的名稱：有自訂名稱用自訂名稱；否則單檔用檔名，
+ * 多檔為「N 個檔案」並在有時間資料時加上日期範圍（與 tripLabel 規則相同，但只需檔案摘要）
+ */
+export function tripDisplayName(customName: string | undefined, files: { name: string; summary: FileSummary }[]): string {
+  const custom = customName?.trim()
+  if (custom) return custom
+  if (files.length === 1) return baseName(files[0].name)
+  return tripMeta(files)
+}
+
+/** 「N 個檔案」，有時間資料時加上日期範圍，例如「2 個檔案 · 2024/8/14–8/15」 */
+export function tripMeta(files: { summary: FileSummary }[]): string {
+  const label = `${files.length} 個檔案`
+  const times = files.flatMap(({ summary }) => (summary.firstTime === undefined ? [] : [summary.firstTime, summary.lastTime!]))
+  return times.length > 0 ? `${label} · ${formatDateRange(Math.min(...times), Math.max(...times))}` : label
 }
 
 export interface NewFile {
