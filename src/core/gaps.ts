@@ -1,5 +1,5 @@
 import { distanceKm } from './geo'
-import type { Track, TrackPoint } from './track'
+import { fileKey, type Track, type TrackPoint } from './track'
 
 export const DEFAULT_GAP_THRESHOLD_KM = 1
 
@@ -36,7 +36,7 @@ export function detectGaps(track: Track, thresholdKm = DEFAULT_GAP_THRESHOLD_KM)
       if (previous) {
         const distance = distanceKm(previous.point, point)
         if (distance > thresholdKm) {
-          const fileBoundary = previous.ref.segment !== segmentIndex && track.segments[previous.ref.segment].source !== segment.source
+          const fileBoundary = previous.ref.segment !== segmentIndex && fileKey(track.segments[previous.ref.segment]) !== fileKey(segment)
           gaps.push(buildGap(previous, { ref, point }, distance, fileBoundary))
         }
       }

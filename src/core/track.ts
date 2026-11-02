@@ -10,6 +10,13 @@ export interface Segment {
   points: TrackPoint[]
   /** 來源檔名（不含副檔名）；多檔匯入時用來辨識檔案之間的缺口 */
   source?: string
+  /** 旅程中檔案的 id；同名的不同檔案也能區分 */
+  fileId?: string
+}
+
+/** 段落屬於哪個檔案：優先用檔案 id，沒有時用檔名 */
+export function fileKey(segment: Segment): string | undefined {
+  return segment.fileId ?? segment.source
 }
 
 export interface Track {
@@ -44,7 +51,7 @@ export function trackBounds(track: Track): Bounds | null {
 
 /** 工具列顯示的旅程名稱：單檔用檔名；多檔為「N 個檔案」，有任何時間資料時加上日期範圍 */
 export function tripLabel(track: Track, formatRange: (startMs: number, endMs: number) => string): string {
-  const sources = new Set(track.segments.map((s) => s.source))
+  const sources = new Set(track.segments.map(fileKey))
   if (sources.size <= 1) return track.name ?? ''
   const label = `${sources.size} 個檔案`
   // 有些檔案可能沒有時間（例如 Google 我的地圖匯出的 KML），只用有時間的點

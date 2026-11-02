@@ -2,11 +2,11 @@
 
 ## 1. 旅程資料模型（src/core）
 
-- [ ] 1.1 `Segment` 加上 `fileId`，`parseTrackFile` 的呼叫端可指定，驗證既有測試全部通過
-- [ ] 1.2 新增 `src/core/trip.ts`：`TripFile`、`buildTrack(files)`（沿用 `mergeTracks` 排序）、`fileSummary`（點數、首尾時間），驗證測試：8/15、8/14 傳入時順序為 8/14、8/15；各段落的 `fileId` 對應正確
-- [ ] 1.3 實作 `fileFingerprint`，驗證測試：同一個 GPX 改檔名後指紋相同；8/14 與 8/15 指紋不同；KML 與 GPX 各自穩定
-- [ ] 1.4 實作 `tripDisplayName(customName, track)`：有自訂名稱用自訂名稱、空白時回到 `tripLabel`，驗證測試涵蓋自訂、清空、單檔、多檔加日期範圍
-- [ ] 1.5 實作加入檔案時的分類（新增／略過相同／失敗），驗證測試：旅程已有 8/14 時選取 8/14 與 8/15，結果只新增 8/15、略過 8/14
+- [x] 1.1 `Segment` 加上 `fileId`（由 `buildTrack` 合併時標上，不改解析器），驗證既有測試全部通過
+- [x] 1.2 新增 `src/core/trip.ts`：`TripFile`、`buildTrack(files)`（沿用 `mergeTracks` 排序）、`fileSummary`（點數、首尾時間），驗證測試：8/15、8/14 傳入時順序為 8/14、8/15；各段落的 `fileId` 對應正確
+- [x] 1.3 實作 `fileFingerprint`，驗證測試：同一個 GPX 改檔名後指紋相同；8/14 與 8/15 指紋不同；KML 與 GPX 各自穩定
+- [x] 1.4 實作 `tripDisplayName(customName, track)`：有自訂名稱用自訂名稱、空白時回到 `tripLabel`，驗證測試涵蓋自訂、清空、單檔、多檔加日期範圍
+- [x] 1.5 實作加入檔案時的分類（新增／略過相同／失敗），驗證測試：旅程已有 8/14 時選取 8/14 與 8/15，結果只新增 8/15、略過 8/14
 
 ## 2. 儲存層
 
