@@ -2,7 +2,7 @@
 
 ## 1. 測試資料
 
-- [ ] 1.1 把 `~/Downloads/Coron_Day1_.gpx` 複製為 `test-data/relive-coron-2025-01-23.gpx`，驗證測試：解析成功、`hasTime` 為 true、門檻 1 km 時有 11 個缺口，其中 10 個時速 ≥ 340 km/h
+- [x] 1.1 把 `~/Downloads/Coron_Day1_.gpx` 複製為 `test-data/relive-coron-2025-01-23.gpx`，驗證測試（`flight.test.ts`）：解析成功、`hasTime` 為 true、門檻 1 km 時有 11 個缺口，其中 10 個時速 ≥ 340 km/h
 
 ## 2. 飛機判斷與航線（src/core）
 
