@@ -10,6 +10,10 @@ export function Legend() {
         推算（鐵路）
       </span>
       <span>
+        <span className="swatch inferred flight" />
+        推算（飛機）
+      </span>
+      <span>
         <span className="swatch gap" />
         缺口
       </span>

@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
+import type { GapFill } from './core/fill'
+import { flightAfterRail, flightBySpeed } from './core/flight'
 import type { Gap } from './core/gaps'
-import { fillGapAlongRail, tilesForGap, type RailFill } from './core/rail/fill'
+import { fillGapAlongRail, tilesForGap } from './core/rail/fill'
 import { RailGraph } from './core/rail/graph'
 import { RailTileLoader } from './core/rail/loader'
 import { tileId } from './core/rail/tile'
@@ -16,16 +18,19 @@ const FLUSH_INTERVAL_MS = 300
 /** 預先下載接下來幾個缺口的網格 */
 const PREFETCH_GAPS = 4
 
-export interface RailFillState {
-  fills: ReadonlyMap<string, RailFill>
+export interface GapFillState {
+  fills: ReadonlyMap<string, GapFill>
   /** 還在處理中的缺口數；0 代表沒有進行中的補路 */
   pending: number
   total: number
 }
 
-/** 匯入後在背景沿鐵路補齊缺口，每補好一個就更新 */
-export function useRailFills(track: Track | null, gaps: Gap[]): RailFillState {
-  const [fills, setFills] = useState<ReadonlyMap<string, RailFill>>(new Map())
+/**
+ * 匯入後在背景補齊缺口：時速高到不可能是鐵路的直接判斷為飛機，
+ * 其餘先試鐵路，鐵路補不了再看是否為飛機
+ */
+export function useGapFills(track: Track | null, gaps: Gap[]): GapFillState {
+  const [fills, setFills] = useState<ReadonlyMap<string, GapFill>>(new Map())
   const [progress, setProgress] = useState({ pending: 0, total: 0 })
   // 每份軌跡的鐵路網圖與已處理過的缺口；調整門檻時只補新的缺口
   const session = useRef<{ track: Track; graph: RailGraph; graphTiles: Set<string>; attempted: Set<string> } | null>(null)
@@ -45,8 +50,10 @@ export function useRailFills(track: Track | null, gaps: Gap[]): RailFillState {
     setProgress({ pending: todo.length, total: gaps.length })
 
     ;(async () => {
-      const tilesOf = todo.map((gap) => tilesForGap(gap))
-      let batch: RailFill[] = []
+      // 直接判斷為飛機的缺口不需要鐵路網格
+      const byFlight = todo.map((gap) => flightBySpeed(gap))
+      const tilesOf = todo.map((gap, i) => (byFlight[i] ? null : tilesForGap(gap)))
+      let batch: GapFill[] = []
       let lastFlush = performance.now()
       const flush = (done: number) => {
         if (batch.length > 0) {
@@ -67,8 +74,8 @@ export function useRailFills(track: Track | null, gaps: Gap[]): RailFillState {
         for (const next of tilesOf.slice(i + 1, i + 1 + PREFETCH_GAPS)) if (next) void loader.prefetch(next)
         const keys = tilesOf[i]
         try {
-          let fill = null
-          if (keys) {
+          let fill: GapFill | null = byFlight[i]
+          if (!fill && keys) {
             const missing = keys.filter((key) => !current.graphTiles.has(tileId(key)))
             if (current.graphTiles.size + missing.length > MAX_GRAPH_TILES) {
               current.graph = new RailGraph()
@@ -80,6 +87,8 @@ export function useRailFills(track: Track | null, gaps: Gap[]): RailFillState {
             if (cancelled) return
             fill = fillGapAlongRail(current.graph, track, gap)
           }
+          // 網格下載失敗時會跳到 catch，不在這裡判斷為飛機，避免離線時把火車當成飛機
+          fill ??= flightAfterRail(track, gap)
           current.attempted.add(gap.id)
           if (fill) batch.push(fill)
         } catch {

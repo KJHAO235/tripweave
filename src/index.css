@@ -1,5 +1,7 @@
 :root {
   --blue: #2563eb;
+  --cyan: #0891b2;
+  --cyan-bg: #ecfeff;
   --orange: #ea580c;
   --red: #dc2626;
   --text: #111827;
@@ -539,4 +541,23 @@ button {
   color: var(--muted);
   font-size: 16px;
   cursor: pointer;
+}
+
+/* 飛機推算：與鐵路的紫色區分 */
+.gap-list .distance.filled.flight {
+  color: var(--cyan);
+}
+
+.gap-list .tag.inferred.flight {
+  color: var(--cyan);
+  border-color: var(--cyan);
+}
+
+.gap-detail.filled.flight {
+  border-color: var(--cyan);
+  background: var(--cyan-bg);
+}
+
+.swatch.inferred.flight {
+  border-top: 3px dashed var(--cyan);
 }

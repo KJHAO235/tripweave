@@ -92,6 +92,15 @@ describe('判斷為飛機', () => {
     expect(flightBySpeed(gap)).toBeNull()
   })
 
+  test('新幹線上 1.5 km、14 秒的 GPS 跳點（約 382 km/h）不會跳過鐵路', () => {
+    const before = line({ lat: 34.97, lon: 135.9 }, 0, 13, 0.75, 10)
+    const last = before.at(-1)!
+    const after = line({ lat: last.lat + 1.5 / 111, lon: 135.9 }, last.time! + 14_000, 13, 0.75, 10)
+    const gap = onlyGap(track([{ points: [...before, ...after] }]))
+    expect(gap.speedKmh!).toBeGreaterThan(350)
+    expect(flightBySpeed(gap)).toBeNull()
+  })
+
   test('兩天的檔案之間隔著一趟飛機（那霸 → 羽田，隔一晚）', () => {
     const day1 = line(NAHA, Date.UTC(2024, 7, 20, 11), 5, 0.01, 60)
     const day2 = line(HANEDA, Date.UTC(2024, 7, 21, 0), 5, 0.01, 60)

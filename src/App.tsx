@@ -8,7 +8,7 @@ import { DEFAULT_GAP_THRESHOLD_KM, detectGaps } from './core/gaps'
 import { toOverlayFeatures, toRecordedFeatures } from './core/mapFeatures'
 import { trackBounds, type Track } from './core/track'
 import { buildTrack, fileOrder, tripDisplayName } from './core/trip'
-import { useRailFills } from './useRailFills'
+import { useGapFills } from './useGapFills'
 import { useTrips } from './useTrips'
 
 export default function App() {
@@ -27,7 +27,7 @@ export default function App() {
   const selectedGapId = selection?.track === track ? selection.gapId : null
   const setSelectedGapId = (gapId: string | null) => setSelection(gapId ? { track, gapId } : null)
   const gaps = useMemo(() => (track ? detectGaps(track, thresholdKm) : []), [track, thresholdKm])
-  const { fills, pending, total } = useRailFills(track, gaps)
+  const { fills, pending, total } = useGapFills(track, gaps)
   // 實線只跟軌跡與缺口有關；補路時只重算資料量小的疊加圖層
   const recorded = useMemo(() => (track ? toRecordedFeatures(track, gaps) : null), [track, gaps])
   const overlay = useMemo(() => (track ? toOverlayFeatures(gaps, fills) : null), [track, gaps, fills])

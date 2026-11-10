@@ -6,6 +6,8 @@ import type { Track } from './track'
 export const FLIGHT = {
   /** 高於所有營運中高鐵的平均時速，可直接判斷為飛機 */
   certainSpeedKmh: 350,
+  /** 短缺口的平均時速受 GPS 誤差影響很大（新幹線上 1.5 km、14 秒就有 382 km/h），太短的不直接判斷 */
+  certainMinKm: 10,
   /** 起降前後較慢的缺口：缺口本身至少這個時速 */
   minSpeedKmh: 150,
   /** 起降前後較慢的缺口：前或後的實際記錄至少這個時速 */
@@ -99,7 +101,7 @@ function flightFill(gap: Gap, basis: FlightBasis): FlightFill {
 
 /** 時速高到不可能是鐵路時直接判斷為飛機，不必嘗試鐵路 */
 export function flightBySpeed(gap: Gap): FlightFill | null {
-  if (gap.speedKmh === undefined || gap.speedKmh < FLIGHT.certainSpeedKmh) return null
+  if (gap.speedKmh === undefined || gap.speedKmh < FLIGHT.certainSpeedKmh || gap.distanceKm < FLIGHT.certainMinKm) return null
   return flightFill(gap, { kind: 'speed', speedKmh: gap.speedKmh })
 }
 

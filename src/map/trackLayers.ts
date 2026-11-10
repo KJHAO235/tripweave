@@ -1,4 +1,4 @@
-import type { GeoJSONSource, Map as MapLibreMap } from 'maplibre-gl'
+import type { ExpressionSpecification, GeoJSONSource, Map as MapLibreMap } from 'maplibre-gl'
 import type { MapFeatures } from '../core/mapFeatures'
 import { TRACK_COLORS } from './style'
 
@@ -9,6 +9,9 @@ export const LAYER_GAPS_HIT = 'gaps-hit'
 export const LAYER_INFERRED_HIT = 'inferred-hit'
 const LAYER_GAPS_SELECTED = 'gaps-selected'
 const LAYER_INFERRED_SELECTED = 'inferred-selected'
+const LAYER_FLIGHT_SELECTED = 'inferred-flight-selected'
+const IS_RAIL: ExpressionSpecification = ['==', ['get', 'mode'], 'rail']
+const IS_FLIGHT: ExpressionSpecification = ['==', ['get', 'mode'], 'flight']
 
 const EMPTY: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: [] }
 
@@ -29,16 +32,32 @@ export function addTrackLayers(map: MapLibreMap) {
     id: 'inferred-line',
     type: 'line',
     source: SOURCE_INFERRED,
+    filter: IS_RAIL,
     layout: { 'line-cap': 'round', 'line-join': 'round' },
     paint: { 'line-color': TRACK_COLORS.inferred, 'line-width': 4, 'line-dasharray': [0, 2] },
+  })
+  // 飛機：青色長虛線，與鐵路的紫色圓點線、缺口的橘色短虛線區分
+  map.addLayer({
+    id: 'inferred-flight-line',
+    type: 'line',
+    source: SOURCE_INFERRED,
+    filter: IS_FLIGHT,
+    paint: { 'line-color': TRACK_COLORS.inferredFlight, 'line-width': 3, 'line-dasharray': [4, 2] },
   })
   map.addLayer({
     id: LAYER_INFERRED_SELECTED,
     type: 'line',
     source: SOURCE_INFERRED,
-    filter: ['==', ['get', 'gapId'], ''],
+    filter: ['all', IS_RAIL, ['==', ['get', 'gapId'], '']],
     layout: { 'line-cap': 'round', 'line-join': 'round' },
     paint: { 'line-color': TRACK_COLORS.inferred, 'line-width': 7, 'line-dasharray': [0, 1.6] },
+  })
+  map.addLayer({
+    id: LAYER_FLIGHT_SELECTED,
+    type: 'line',
+    source: SOURCE_INFERRED,
+    filter: ['all', IS_FLIGHT, ['==', ['get', 'gapId'], '']],
+    paint: { 'line-color': TRACK_COLORS.inferredFlight, 'line-width': 6, 'line-dasharray': [4, 1.5] },
   })
   map.addLayer({
     id: 'gaps-line',
@@ -80,5 +99,6 @@ export function setOverlayData(map: MapLibreMap, overlay: Pick<MapFeatures, 'gap
 
 export function setSelectedGap(map: MapLibreMap, gapId: string | null) {
   map.setFilter(LAYER_GAPS_SELECTED, ['==', ['get', 'id'], gapId ?? ''])
-  map.setFilter(LAYER_INFERRED_SELECTED, ['==', ['get', 'gapId'], gapId ?? ''])
+  map.setFilter(LAYER_INFERRED_SELECTED, ['all', IS_RAIL, ['==', ['get', 'gapId'], gapId ?? '']])
+  map.setFilter(LAYER_FLIGHT_SELECTED, ['all', IS_FLIGHT, ['==', ['get', 'gapId'], gapId ?? '']])
 }
