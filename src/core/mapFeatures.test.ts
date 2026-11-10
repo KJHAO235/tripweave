@@ -1,8 +1,9 @@
 import { describe, expect, test } from 'vitest'
 import { loadTestTrack } from '../test/parseXml'
+import type { GapFill } from './fill'
+import { flightAfterRail } from './flight'
 import { detectGaps } from './gaps'
 import { toMapFeatures } from './mapFeatures'
-import type { RailFill } from './rail/fill'
 import { countPoints, type Track } from './track'
 
 const key = (a: number[], b: number[]) => `${a[0]},${a[1]}|${b[0]},${b[1]}`
@@ -70,7 +71,7 @@ describe('推算路段', () => {
   const track: Track = { hasTime: false, segments: [{ points: [p(0), p(0.001), p(1), p(1.001), p(2), p(2.001)] }] }
   const gaps = detectGaps(track)
   const filled = gaps.find((g) => g.from.lat === 0.001)!
-  const fills = new Map<string, RailFill>([
+  const fills = new Map<string, GapFill>([
     [
       filled.id,
       {
@@ -96,9 +97,24 @@ describe('推算路段', () => {
     expect(features.gaps.features.map((f) => f.geometry.coordinates)).toContainEqual([[0, 1.001], [0, 2]])
   })
 
-  test('推算圖層只有補齊的缺口，帶有缺口 id 與長度', () => {
+  test('推算圖層只有補齊的缺口，帶有缺口 id、補齊方式與長度', () => {
     expect(features.inferred.features).toHaveLength(1)
-    expect(features.inferred.features[0].properties).toEqual({ gapId: filled.id, lengthKm: 110 })
+    expect(features.inferred.features[0].properties).toEqual({ gapId: filled.id, mode: 'rail', lengthKm: 110 })
     expect(features.inferred.features[0].geometry.coordinates).toEqual(fills.get(filled.id)!.path)
+  })
+})
+
+describe('飛機推算路段', () => {
+  const p = (lat: number) => ({ lat, lon: 0 })
+  const track: Track = { hasTime: false, segments: [{ points: [p(0), p(0.001), p(5), p(5.001)] }] }
+  const [gap] = detectGaps(track)
+  const fill = flightAfterRail(track, gap)!
+  const features = toMapFeatures(track, [gap], new Map<string, GapFill>([[gap.id, fill]]))
+
+  test('帶 mode: flight，整段由推算取代、沒有缺口殘段', () => {
+    expect(features.inferred.features).toHaveLength(1)
+    expect(features.inferred.features[0].properties).toEqual({ gapId: gap.id, mode: 'flight', lengthKm: gap.distanceKm })
+    expect(features.inferred.features[0].geometry.coordinates).toEqual(fill.path)
+    expect(features.gaps.features).toHaveLength(0)
   })
 })

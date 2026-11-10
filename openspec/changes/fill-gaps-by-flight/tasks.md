@@ -6,10 +6,10 @@
 
 ## 2. 飛機判斷與航線（src/core）
 
-- [ ] 2.1 新增 `src/core/flight.ts` 的 `greatCirclePath`，驗證測試：那霸到羽田長度與 `distanceKm` 相差 1% 內、點距不超過 50 km；東京到檀香山的路徑經度連續（相鄰點差小於 10 度）且全程經度大於 139
-- [ ] 2.2 實作 `recordedSpeedNear(track, ref, direction)`（往外 60 秒的平均時速），驗證測試：Coron 降落前 32 km 缺口的起點往前 ≥ 200 km/h；`Day1+2.kml`（沒有時間）回傳 undefined
-- [ ] 2.3 實作 `flightBySpeed` 與 `flightAfterRail`，驗證測試涵蓋規格的五個情境：Coron 的 11 個缺口全部判斷為飛機（鐵路補不了的前提下）、時速 250 km/h 且前後高速的缺口 `flightBySpeed` 回傳 null、合成的那霸→羽田隔夜缺口、沒有時間的 520 km 缺口、120 km 90 km/h 的缺口不判斷為飛機
-- [ ] 2.4 新增 `src/core/fill.ts` 的 `GapFill` 型別，`toOverlayFeatures` 的推算 feature 帶 `mode`，驗證既有 `mapFeatures` 測試通過，並新增飛機補齊的 feature 帶 `mode: 'flight'`、沒有缺口殘段的測試
+- [x] 2.1 新增 `src/core/flight.ts` 的 `greatCirclePath`，驗證測試：那霸到羽田長度與 `distanceKm` 相差 1% 內、點距不超過 50 km；東京到檀香山的路徑經度連續（相鄰點差小於 10 度）且全程經度大於 139
+- [x] 2.2 實作 `recordedSpeedNear(track, ref, direction)`（往外 60 秒的平均時速），驗證測試：Coron 降落前 32 km 缺口的起點往前 ≥ 200 km/h；`Day1+2.kml`（沒有時間）回傳 undefined
+- [x] 2.3 實作 `flightBySpeed` 與 `flightAfterRail`，驗證測試涵蓋規格的五個情境：Coron 的 11 個缺口全部判斷為飛機（鐵路補不了的前提下）、時速 250 km/h 且前後高速的缺口 `flightBySpeed` 回傳 null、合成的那霸→羽田隔夜缺口、沒有時間的 520 km 缺口、120 km 90 km/h 的缺口不判斷為飛機
+- [x] 2.4 新增 `src/core/fill.ts` 的 `GapFill` 型別，`toOverlayFeatures` 的推算 feature 帶 `mode`，驗證既有 `mapFeatures` 測試通過，並新增飛機補齊的 feature 帶 `mode: 'flight'`、沒有缺口殘段的測試
 
 ## 3. 補齊流程
 

@@ -1,6 +1,6 @@
 import type { FeatureCollection, LineString, MultiLineString, Position } from 'geojson'
 import type { Gap } from './gaps'
-import type { RailFill } from './rail/fill'
+import type { GapFill } from './fill'
 import type { Track, TrackPoint } from './track'
 
 export interface GapProperties {
@@ -12,6 +12,8 @@ export interface GapProperties {
 
 export interface InferredProperties {
   gapId: string
+  /** 補齊方式，地圖依此使用不同樣式 */
+  mode: GapFill['mode']
   lengthKm: number
 }
 
@@ -24,7 +26,7 @@ export interface MapFeatures {
   inferred: FeatureCollection<LineString, InferredProperties>
 }
 
-export function toMapFeatures(track: Track, gaps: Gap[], fills: ReadonlyMap<string, RailFill> = new Map()): MapFeatures {
+export function toMapFeatures(track: Track, gaps: Gap[], fills: ReadonlyMap<string, GapFill> = new Map()): MapFeatures {
   return { recorded: toRecordedFeatures(track, gaps), ...toOverlayFeatures(gaps, fills) }
 }
 
@@ -67,7 +69,7 @@ export function toRecordedFeatures(track: Track, gaps: Gap[]): FeatureCollection
 }
 
 /** 缺口線與推算路段；資料量小，補路時每次更新都重算 */
-export function toOverlayFeatures(gaps: Gap[], fills: ReadonlyMap<string, RailFill>): Pick<MapFeatures, 'gaps' | 'inferred'> {
+export function toOverlayFeatures(gaps: Gap[], fills: ReadonlyMap<string, GapFill>): Pick<MapFeatures, 'gaps' | 'inferred'> {
   return {
     gaps: {
       type: 'FeatureCollection',
@@ -96,7 +98,7 @@ export function toOverlayFeatures(gaps: Gap[], fills: ReadonlyMap<string, RailFi
         return [
           {
             type: 'Feature' as const,
-            properties: { gapId: gap.id, lengthKm: fill.lengthKm },
+            properties: { gapId: gap.id, mode: fill.mode, lengthKm: fill.lengthKm },
             geometry: { type: 'LineString' as const, coordinates: fill.path },
           },
         ]
