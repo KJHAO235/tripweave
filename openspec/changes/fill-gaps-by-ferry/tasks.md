@@ -31,7 +31,7 @@
 
 ## 6. 部署與 iPhone 驗收
 
-- [ ] 6.1 徵得使用者同意後 push，並手動觸發「產生鐵路資料」；驗證所有洲在時間內完成、Release 有 `ferry-data.tar.gz`、網站的 `ferry/v1/index.json` 可以取得
+- [x] 6.1 徵得使用者同意後 push，並手動觸發「產生鐵路資料」；驗證所有洲在時間內完成、Release 有 `ferry-data.tar.gz`、網站的 `ferry/v1/index.json` 可以取得（實測：21 組全部成功，整次 22 分鐘、最久一組 20 分鐘；ferry-data 10.9 MB）
 - [ ] 6.2 在 iPhone 匯入挖掉中段的 El Nido 檔案（由我產生並傳給使用者），驗證沿航線補齊、樣式可分辨；日本與 Coron 旅程結果不變
 
 ## Workflow follow-up
