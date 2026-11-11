@@ -47,6 +47,14 @@ describe('在路口切邊', () => {
   })
 })
 
+describe('渡輪航線', () => {
+  test('route=ferry 的線段保留名稱，視為主線、非隧道', () => {
+    const way = parseOplWay('w467592728 v5 Troute=ferry,name=El%20%Nido%20%%2013%%20%Coron Nn1x120.2111y11.9912,n2x119.3869y11.1817')!
+    const [edge] = splitIntoEdges([way])
+    expect(edge).toMatchObject({ name: 'El Nido – Coron', service: 0, tunnel: false })
+  })
+})
+
 describe('Douglas–Peucker 精簡', () => {
   test('直線上的中間點被移除、兩端保留', () => {
     expect(simplify([[0, 0], [0.001, 0], [0.002, 0], [0.003, 0]], 5)).toEqual([[0, 0], [0.003, 0]])

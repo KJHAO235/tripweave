@@ -48,7 +48,8 @@ jobs:
             name="${region//\//_}"
             scripts/rail/fetch-region.sh "$region" work
             node scripts/rail/build-tiles.ts --out "tiles/$name" "work/$name.rail.opl"
-            rm -f "work/$name.rail.opl"
+            node scripts/rail/build-tiles.ts --out "ferry-tiles/$name" "work/$name.ferry.opl"
+            rm -f "work/$name.rail.opl" "work/$name.ferry.opl"
           done
           echo "地區處理耗時 $(( $(date +%s) - start )) 秒"
       - name: 合併洲內網格
@@ -56,10 +57,18 @@ jobs:
           node scripts/rail/merge-tiles.ts --out out tiles/*
           tar -czf "rail-${{ matrix.group }}.tar.gz" -C out .
           du -sh out "rail-${{ matrix.group }}.tar.gz"
+          node scripts/rail/merge-tiles.ts --out ferry-out ferry-tiles/*
+          tar -czf "ferry-${{ matrix.group }}.tar.gz" -C ferry-out .
+          du -sh ferry-out "ferry-${{ matrix.group }}.tar.gz"
       - uses: actions/upload-artifact@v4
         with:
           name: rail-${{ matrix.group }}
           path: rail-${{ matrix.group }}.tar.gz
+          retention-days: 3
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ferry-${{ matrix.group }}
+          path: ferry-${{ matrix.group }}.tar.gz
           retention-days: 3
 
   publish:
@@ -75,6 +84,11 @@ jobs:
           pattern: rail-*
           merge-multiple: true
           path: parts
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: ferry-*
+          merge-multiple: true
+          path: ferry-parts
       - name: 合併所有洲
         run: |
           for file in parts/*.tar.gz; do
@@ -85,13 +99,23 @@ jobs:
           tar -czf rail-data.tar.gz -C out .
           du -sh out rail-data.tar.gz
           echo "網格檔案數：$(find out -name '*.json' | wc -l)"
+      - name: 合併所有洲的渡輪航線
+        run: |
+          for file in ferry-parts/*.tar.gz; do
+            dir="ferry-parts/$(basename "$file" .tar.gz)"
+            mkdir -p "$dir" && tar -xzf "$file" -C "$dir"
+          done
+          node scripts/rail/merge-tiles.ts --out ferry-out ferry-parts/*/
+          tar -czf ferry-data.tar.gz -C ferry-out .
+          du -sh ferry-out ferry-data.tar.gz
+          echo "渡輪網格檔案數：$(find ferry-out -name '*.json' | wc -l)"
       - name: 上傳到 Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release view rail-data > /dev/null 2>&1 || \
             gh release create rail-data --title "鐵路資料" --notes "由「產生鐵路資料」workflow 每月自動產生，請勿手動修改。"
-          gh release upload rail-data rail-data.tar.gz --clobber
+          gh release upload rail-data rail-data.tar.gz ferry-data.tar.gz --clobber
       - name: 觸發網站部署
         env:
           GH_TOKEN: ${{ github.token }}

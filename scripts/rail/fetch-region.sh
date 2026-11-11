@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 下載一個 Geofabrik 地區，只留下鐵路，輸出含節點座標的 OPL。
+# 下載一個 Geofabrik 地區，分別輸出鐵路與渡輪航線（含節點座標）的 OPL。
 # 用法：scripts/rail/fetch-region.sh <地區，例如 asia/japan> <工作資料夾>
 set -euo pipefail
 
@@ -12,6 +12,8 @@ mkdir -p "$workdir"
 pbf="$workdir/$name.osm.pbf"
 rail_pbf="$workdir/$name.rail.osm.pbf"
 opl="$workdir/$name.rail.opl"
+ferry_pbf="$workdir/$name.ferry.osm.pbf"
+ferry_opl="$workdir/$name.ferry.opl"
 
 # --continue-at - 讓中斷的下載可以從已下載的部分接續
 curl --fail --location --silent --show-error --retry 3 --continue-at - \
@@ -22,9 +24,14 @@ curl --fail --location --silent --show-error --retry 3 --continue-at - \
 osmium tags-filter "$pbf" \
   w/railway=rail,subway,light_rail,narrow_gauge,monorail \
   --overwrite --output "$rail_pbf"
+# 渡輪航線與鐵路來自同一份下載，不另外下載
+osmium tags-filter "$pbf" w/route=ferry --overwrite --output "$ferry_pbf"
 rm -f "$pbf"
 
 osmium add-locations-to-ways "$rail_pbf" --overwrite --output "$opl"
 rm -f "$rail_pbf"
+osmium add-locations-to-ways "$ferry_pbf" --overwrite --output "$ferry_opl"
+rm -f "$ferry_pbf"
 
 echo "$opl"
+echo "$ferry_opl"

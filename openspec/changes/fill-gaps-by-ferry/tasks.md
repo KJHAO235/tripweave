@@ -2,9 +2,9 @@
 
 ## 1. 渡輪資料管線
 
-- [ ] 1.1 `fetch-region.sh` 在刪除 PBF 前另外輸出 `<name>.ferry.opl`（`w/route=ferry`），`opl.ts` 對沒有 railway 標籤的線段視為主線、非隧道，驗證 `pipeline.test.ts` 新增的渡輪 OPL 案例：名稱保留、service 為 0
-- [ ] 1.2 本機下載 `asia/philippines` 並產生渡輪網格，驗證 Coron 與 El Nido 之間有渡輪航線；把需要的網格複製到 `test-data/ferry/v1/`（含只列這些網格的 `index.json`），驗證檔案大小合理（< 1 MB）
-- [ ] 1.3 `rail-data.yml` 對每個地區同時產生渡輪網格、合併並上傳 `ferry-data.tar.gz`；`deploy.yml` 下載得到時解到 `dist/ferry/`，下載不到時照常部署。驗證 workflow YAML 語法（`gh workflow view` 或 actionlint 若可用）與步驟順序
+- [x] 1.1 `fetch-region.sh` 在刪除 PBF 前另外輸出 `<name>.ferry.opl`（`w/route=ferry`），`opl.ts` 對沒有 railway 標籤的線段視為主線、非隧道，驗證 `pipeline.test.ts` 新增的渡輪 OPL 案例：名稱保留、service 為 0
+- [x] 1.2 本機下載 `asia/philippines` 並產生渡輪網格，驗證 Coron 與 El Nido 之間有渡輪航線；把需要的網格複製到 `test-data/ferry/v1/`（含只列這些網格的 `index.json`），驗證檔案大小合理（< 1 MB）（實測：菲律賓 1,137 條航線、2,551 個網格；有「El Nido – Coron」航線 w467592728；保留 42 個網格共 192 KB）
+- [x] 1.3 `rail-data.yml` 對每個地區同時產生渡輪網格、合併並上傳 `ferry-data.tar.gz`；`deploy.yml` 下載得到時解到 `dist/ferry/`，下載不到時照常部署。驗證 workflow YAML 語法（本機以 Ruby 的 YAML 解析）與步驟順序
 
 ## 2. 測試資料與渡輪判斷（src/core）
 

@@ -39,6 +39,17 @@ jobs:
           else
             echo "尚無鐵路資料，這次部署不含補路功能"
           fi
+      - name: 加入渡輪資料
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release download rail-data --pattern ferry-data.tar.gz --dir "$RUNNER_TEMP"; then
+            mkdir -p dist/ferry
+            tar -xzf "$RUNNER_TEMP/ferry-data.tar.gz" -C dist/ferry
+            ls dist/ferry
+          else
+            echo "尚無渡輪資料，這次部署不含渡輪補路"
+          fi
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
