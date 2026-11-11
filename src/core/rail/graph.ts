@@ -3,6 +3,8 @@ import type { RailEdge } from './tile.ts'
 
 /** 空間索引格子大小（度），約 1 km */
 const BUCKET_DEG = 0.01
+/** 外接矩形兩個方向都超過這麼多格時視為長線段 */
+const LONG_SEGMENT_BUCKETS = 4
 
 export interface GraphEdge extends RailEdge {
   /** 每個座標點距離起點的累積長度（公里） */
@@ -83,13 +85,22 @@ export class RailGraph {
     const maxLat = Math.floor(Math.max(lat1, lat2) / BUCKET_DEG)
     const minLon = Math.floor(Math.min(lon1, lon2) / BUCKET_DEG)
     const maxLon = Math.floor(Math.max(lon1, lon2) / BUCKET_DEG)
-    for (let y = minLat; y <= maxLat; y++) {
-      for (let x = minLon; x <= maxLon; x++) {
-        const key = `${y}/${x}`
-        const list = this.buckets.get(key) ?? []
-        list.push([edgeId, index])
-        this.buckets.set(key, list)
-      }
+    const add = (y: number, x: number) => {
+      const key = `${y}/${x}`
+      const list = this.buckets.get(key) ?? []
+      if (list.at(-1)?.[0] === edgeId && list.at(-1)?.[1] === index) return
+      list.push([edgeId, index])
+      this.buckets.set(key, list)
+    }
+    // 鐵路的線段很短，登記整個外接矩形；渡輪航線一段可能跨好幾度，改為沿線段取樣，避免登記數十萬個格子
+    if (maxLat - minLat <= LONG_SEGMENT_BUCKETS || maxLon - minLon <= LONG_SEGMENT_BUCKETS) {
+      for (let y = minLat; y <= maxLat; y++) for (let x = minLon; x <= maxLon; x++) add(y, x)
+      return
+    }
+    const steps = Math.ceil((Math.max(Math.abs(lat2 - lat1), Math.abs(lon2 - lon1)) / BUCKET_DEG) * 4)
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps
+      add(Math.floor((lat1 + t * (lat2 - lat1)) / BUCKET_DEG), Math.floor((lon1 + t * (lon2 - lon1)) / BUCKET_DEG))
     }
   }
 }

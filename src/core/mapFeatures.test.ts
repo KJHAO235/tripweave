@@ -1,5 +1,7 @@
 import { describe, expect, test } from 'vitest'
-import { loadTestTrack } from '../test/parseXml'
+import { carvedElNidoTrack, loadTestTrack } from '../test/parseXml'
+import { fixtureGraph } from '../test/railFixtures'
+import { fillGapAlongFerry, tilesForFerryGap } from './ferry'
 import type { GapFill } from './fill'
 import { flightAfterRail } from './flight'
 import { detectGaps } from './gaps'
@@ -116,5 +118,16 @@ describe('飛機推算路段', () => {
     expect(features.inferred.features[0].properties).toEqual({ gapId: gap.id, mode: 'flight', lengthKm: gap.distanceKm })
     expect(features.inferred.features[0].geometry.coordinates).toEqual(fill.path)
     expect(features.gaps.features).toHaveLength(0)
+  })
+})
+
+describe('渡輪推算路段', () => {
+  test('帶 mode: ferry，離航線較遠的一端畫成缺口殘段', async () => {
+    const track = carvedElNidoTrack()
+    const [gap] = detectGaps(track, 1)
+    const fill = fillGapAlongFerry(await fixtureGraph(tilesForFerryGap(gap)!, 'ferry'), gap)!
+    const features = toMapFeatures(track, [gap], new Map<string, GapFill>([[gap.id, fill]]))
+    expect(features.inferred.features[0].properties).toEqual({ gapId: gap.id, mode: 'ferry', lengthKm: fill.lengthKm })
+    expect(features.gaps.features.map((f) => f.geometry.coordinates)).toEqual(fill.remainders)
   })
 })

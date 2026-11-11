@@ -8,10 +8,10 @@
 
 ## 2. 測試資料與渡輪判斷（src/core）
 
-- [ ] 2.1 把 `~/Downloads/El_Nido_Day1_.gpx` 複製為 `test-data/relive-elnido-2025-01-26.gpx`，並在測試輔助中提供挖掉船程中段約 40 km 的版本，驗證測試：原檔 0 個缺口、挖掉後有 1 個約 40 km 的缺口
-- [ ] 2.2 新增 `src/core/ferry.ts` 的 `fillGapAlongFerry`、`tilesForFerryGap`，驗證測試（使用 `test-data/ferry`）：挖掉的船程判斷為渡輪且推算路段沿航線（路徑中點離兩端直線 > 1 km 或與航線重合）；山區缺口、時速 400 km/h 的缺口不判斷為渡輪；碼頭離航線 1 km 時有殘段
-- [ ] 2.3 以合成航線網測試鹿兒島—那霸約 700 km、25 小時的缺口判斷為渡輪，且 `flightAfterRail` 不會先被呼叫（以 `useGapFills` 使用的判斷函式驗證順序）
-- [ ] 2.4 `GapFill` 加入 `FerryFill`，`toOverlayFeatures` 的渡輪 feature 帶 `mode: 'ferry'` 與殘段，驗證 `mapFeatures` 測試
+- [x] 2.1 把 `~/Downloads/El_Nido_Day1_.gpx` 複製為 `test-data/relive-elnido-2025-01-26.gpx`，並在測試輔助中提供挖掉船程中段的版本（第 1501–4999 點，兩端都在航線 3 km 內），驗證測試：原檔 0 個缺口、挖掉後有 1 個約 32 km 的缺口
+- [x] 2.2 新增 `src/core/ferry.ts` 的 `fillGapAlongFerry`、`tilesForFerryGap`，驗證測試（使用 `test-data/ferry`）：挖掉的船程判斷為渡輪且推算路段沿航線（路徑中點離兩端直線 > 1 km 或與航線重合）；山區缺口、時速 400 km/h 的缺口不判斷為渡輪；離航線超過 0.3 km 的一端有殘段（挖掉版本的終點離航線約 0.4 km）
+- [x] 2.3 以合成航線網測試鹿兒島—那霸約 700 km、25 小時的缺口判斷為渡輪，且不被判斷為飛機（以 `useGapFills` 使用的 `decideFill` 驗證順序；沒有渡輪資料時同一缺口仍為飛機）
+- [x] 2.4 `GapFill` 加入 `FerryFill`，`toOverlayFeatures` 的渡輪 feature 帶 `mode: 'ferry'` 與殘段，驗證 `mapFeatures` 測試
 
 ## 3. 補齊流程
 
