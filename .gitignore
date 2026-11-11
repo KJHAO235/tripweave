@@ -23,5 +23,6 @@ dist-ssr
 *.sln
 *.sw?
 
-# 本機開發用的鐵路資料（正式資料在部署時從 Release 下載）
+# 本機開發用的鐵路與渡輪資料（正式資料在部署時從 Release 下載）
 public/rail/
+public/ferry/

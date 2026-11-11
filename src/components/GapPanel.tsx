@@ -81,7 +81,7 @@ export function GapPanel({
                     <span className={fill ? `distance filled ${fill.mode}` : 'distance'}>{formatKm(gap.distanceKm)}</span>
                     {gap.durationSec !== undefined && <span className="meta">{formatDuration(gap.durationSec)}</span>}
                     {fill && (
-                      <span className={`tag inferred ${fill.mode}`}>{fill.mode === 'rail' ? `鐵路 ${fill.routeNames[0] ?? ''}` : '飛機'}</span>
+                      <span className={`tag inferred ${fill.mode}`}>{fillTag(fill)}</span>
                     )}
                     {gap.isFileBoundary ? (
                       <span className="tag">檔案之間</span>
@@ -116,6 +116,14 @@ function GapDetail({ gap, fill, onClose }: { gap: Gap; fill: GapFill | undefined
             <dd>{fill.routeNames.length > 0 ? fill.routeNames.join('、') : '（未命名鐵路）'}</dd>
             <dt>推算長度</dt>
             <dd>{formatKm(fill.lengthKm)}（沿鐵路）</dd>
+          </>
+        )}
+        {fill?.mode === 'ferry' && (
+          <>
+            <dt>經過航線</dt>
+            <dd>{fill.routeNames.length > 0 ? fill.routeNames.join('、') : '（未命名航線）'}</dd>
+            <dt>推算長度</dt>
+            <dd>{formatKm(fill.lengthKm)}（沿渡輪航線）</dd>
           </>
         )}
         {fill?.mode === 'flight' && (
@@ -156,5 +164,13 @@ function GapDetail({ gap, fill, onClose }: { gap: Gap; fill: GapFill | undefined
 function detailTitle(gap: Gap, fill: GapFill | undefined): string {
   const km = formatKm(gap.distanceKm)
   if (!fill) return `缺口 ${km}`
-  return fill.mode === 'rail' ? `已沿鐵路補齊（缺口 ${km}）` : `推算為飛機（缺口 ${km}）`
+  if (fill.mode === 'rail') return `已沿鐵路補齊（缺口 ${km}）`
+  if (fill.mode === 'ferry') return `已沿渡輪航線補齊（缺口 ${km}）`
+  return `推算為飛機（缺口 ${km}）`
+}
+
+function fillTag(fill: GapFill): string {
+  if (fill.mode === 'rail') return `鐵路 ${fill.routeNames[0] ?? ''}`
+  if (fill.mode === 'ferry') return `渡輪 ${fill.routeNames[0] ?? ''}`
+  return '飛機'
 }

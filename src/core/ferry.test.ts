@@ -48,7 +48,7 @@ describe('El Nido 船程挖掉中段', () => {
   test('完整判斷順序也得到渡輪（不是飛機或鐵路）', async () => {
     const track = carvedElNidoTrack()
     const [gap] = detectGaps(track, 1)
-    expect(decideFill(track, gap, new RailGraph(), await ferryGraphFor(gap))?.mode).toBe('ferry')
+    expect((await decideFill(track, gap, async () => new RailGraph(), () => ferryGraphFor(gap)))?.mode).toBe('ferry')
   })
 })
 
@@ -65,6 +65,14 @@ describe('不是渡輪的情況', () => {
     const { gap } = twoPointGap({ lat: real.from.lat, lon: real.from.lon, time: 0 }, { lat: real.to.lat, lon: real.to.lon, time: hours * 3_600_000 })
     expect(fillGapAlongFerry(await ferryGraphFor(gap), gap)).toBeNull()
   })
+})
+
+test('網格下載失敗時中止判斷，不會退而判斷為飛機', async () => {
+  const { track, gap } = twoPointGap({ lat: 31.59, lon: 130.57, time: 0 }, { lat: 26.22, lon: 127.67, time: 25 * 3_600_000 })
+  const offline = async () => {
+    throw new Error('offline')
+  }
+  await expect(decideFill(track, gap, async () => new RailGraph(), offline)).rejects.toThrow('offline')
 })
 
 describe('長程渡輪優先於依距離判斷的飛機', () => {
@@ -93,17 +101,17 @@ describe('長程渡輪優先於依距離判斷的飛機', () => {
     ]),
   ])
 
-  test('25 小時、約 700 km 的缺口判斷為渡輪而不是飛機', () => {
+  test('25 小時、約 700 km 的缺口判斷為渡輪而不是飛機', async () => {
     const { track, gap } = twoPointGap({ ...KAGOSHIMA, time: 0 }, { ...NAHA, time: 25 * 3_600_000 })
     expect(gap.distanceKm).toBeGreaterThan(600)
-    const fill = decideFill(track, gap, new RailGraph(), graph)!
+    const fill = (await decideFill(track, gap, async () => new RailGraph(), async () => graph))!
     expect(fill.mode).toBe('ferry')
     expect(fill.lengthKm).toBeGreaterThan(gap.distanceKm)
   })
 
-  test('沒有渡輪資料時同一個缺口仍判斷為飛機', () => {
+  test('沒有渡輪資料時同一個缺口仍判斷為飛機', async () => {
     const { track, gap } = twoPointGap({ ...KAGOSHIMA, time: 0 }, { ...NAHA, time: 25 * 3_600_000 })
-    expect(decideFill(track, gap, new RailGraph(), new RailGraph())?.mode).toBe('flight')
+    expect((await decideFill(track, gap, async () => new RailGraph(), async () => new RailGraph()))?.mode).toBe('flight')
   })
 })
 

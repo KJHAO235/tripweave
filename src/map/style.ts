@@ -7,4 +7,5 @@ export const TRACK_COLORS = {
   gapSelected: '#dc2626',
   inferred: '#7c3aed',
   inferredFlight: '#0891b2',
+  inferredFerry: '#059669',
 } as const

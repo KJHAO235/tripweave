@@ -10,14 +10,19 @@ export type GapFill = RailFill | FerryFill | FlightFill
 
 /**
  * 依序判斷補齊方式：時速高到不可能是鐵路的飛機 → 鐵路 → 渡輪 → 起降前後或長距離的飛機。
- * 鐵路與渡輪網只需包含這個缺口附近的網格；網格下載失敗時呼叫端不應呼叫此函式，
- * 以免離線時把火車或渡輪判斷成飛機
+ * 鐵路與渡輪網只在需要時才取得（大部分缺口鐵路就能補齊，不必下載渡輪網格）；
+ * 取得網格失敗時整個判斷中止並拋出錯誤，以免離線時把火車或渡輪判斷成飛機
  */
-export function decideFill(track: Track, gap: Gap, railGraph: RailGraph, ferryGraph: RailGraph): GapFill | null {
+export async function decideFill(
+  track: Track,
+  gap: Gap,
+  railGraph: () => Promise<RailGraph>,
+  ferryGraph: () => Promise<RailGraph>,
+): Promise<GapFill | null> {
   return (
     flightBySpeed(gap) ??
-    fillGapAlongRail(railGraph, track, gap) ??
-    fillGapAlongFerry(ferryGraph, gap) ??
+    fillGapAlongRail(await railGraph(), track, gap) ??
+    fillGapAlongFerry(await ferryGraph(), gap) ??
     flightAfterRail(track, gap)
   )
 }

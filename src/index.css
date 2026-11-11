@@ -1,6 +1,8 @@
 :root {
   --blue: #2563eb;
   --cyan: #0891b2;
+  --green: #059669;
+  --green-bg: #ecfdf5;
   --cyan-bg: #ecfeff;
   --orange: #ea580c;
   --red: #dc2626;
@@ -560,4 +562,26 @@ button {
 
 .swatch.inferred.flight {
   border-top: 3px dashed var(--cyan);
+}
+
+/* 渡輪推算：綠色 */
+.gap-list .distance.filled.ferry {
+  color: var(--green);
+}
+
+.gap-list .tag.inferred.ferry {
+  color: var(--green);
+  border-color: var(--green);
+}
+
+.gap-detail.filled.ferry {
+  border-color: var(--green);
+  background: var(--green-bg);
+}
+
+.swatch.inferred.ferry {
+  height: 3px;
+  border-top: none;
+  /* 長短交錯，與地圖上的渡輪線一致，和飛機的等長虛線區分 */
+  background: repeating-linear-gradient(90deg, var(--green) 0 7px, transparent 7px 9px, var(--green) 9px 11px, transparent 11px 13px);
 }
