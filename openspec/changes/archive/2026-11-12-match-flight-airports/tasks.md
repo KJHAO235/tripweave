@@ -19,7 +19,7 @@
 ## 4. 驗收
 
 - [x] 4.1 在 Chrome 開啟日本、Coron、El Nido 渡輪測試旅程，驗證補齊數量與方式不變（333/343、11 飛機、1 渡輪）
-- [ ] 4.2 徵得使用者同意後 push，在 iPhone 驗證 Coron 旅程的航段顯示
+- [x] 4.2 徵得使用者同意後 push，在 iPhone 驗證 Coron 旅程的航段顯示
 
 ## Workflow follow-up
 
