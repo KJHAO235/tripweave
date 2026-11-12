@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import { carvedElNidoTrack, loadTestTrack } from '../test/parseXml'
 import { fixtureGraph } from '../test/railFixtures'
-import { animationSeconds, boundsAhead, buildAnimationRoute, frameAt } from './animation'
+import { animationSeconds, boundsAhead, buildAnimationRoute, buildCameraPath, cameraAt, frameAt } from './animation'
 import { fillGapAlongFerry, tilesForFerryGap } from './ferry'
 import type { GapFill } from './fill'
 import { flightAfterRail, flightBySpeed } from './flight'
@@ -87,4 +87,25 @@ test('相隔太久的兩段行程之間以 jump 片段跳過，不畫線也不�
   const jumps = route.pieces.filter((p) => p.mode === 'jump')
   expect(jumps.length).toBeGreaterThan(0)
   for (const jump of jumps) expect(jump.weight).toBe(0)
+})
+
+test('鏡頭路徑比圓點平滑：中心的二階差分小於十分之一，縮放每格變化很小', () => {
+  const track = loadTestTrack('relive-2024-08-14.gpx')
+  const route = buildAnimationRoute(track, detectGaps(track), new Map())
+  const zoomFor = ([[w, s], [e, n]]: [[number, number], [number, number]]) => Math.min(14, Math.log2(360 / Math.max(e - w, n - s, 0.002)) - 1)
+  const camera = buildCameraPath(route, zoomFor)
+  const frames = route.durationSec * 60
+  const raw: [number, number][] = []
+  const smooth: [number, number][] = []
+  const zooms: number[] = []
+  for (let i = 0; i <= frames; i++) {
+    raw.push(frameAt(route, i / frames)!.position)
+    const c = cameraAt(camera, i / frames)
+    smooth.push(c.center)
+    zooms.push(c.zoom)
+  }
+  const jerk = (c: [number, number][]) =>
+    c.slice(1, -1).reduce((sum, p, i) => sum + Math.hypot(c[i][0] + c[i + 2][0] - 2 * p[0], c[i][1] + c[i + 2][1] - 2 * p[1]), 0)
+  expect(jerk(smooth)).toBeLessThan(jerk(raw) / 10)
+  for (let i = 1; i < zooms.length; i++) expect(Math.abs(zooms[i] - zooms[i - 1])).toBeLessThan(0.05)
 })

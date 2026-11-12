@@ -1,6 +1,6 @@
 import type { Map as MapLibreMap } from 'maplibre-gl'
-import { useEffect, useRef, useState } from 'react'
-import { boundsAhead, frameAt, type AnimationRoute } from '../core/animation'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { buildCameraPath, cameraAt, frameAt, type AnimationRoute } from '../core/animation'
 import type { Bounds } from '../core/track'
 import { setAnimationCurrent, setAnimationDone, setAnimationLayersVisible, type AnimationLines } from '../map/animationLayers'
 import { setTrackLayersVisible } from '../map/trackLayers'
@@ -13,12 +13,7 @@ interface Props {
   onClose: () => void
 }
 
-/** 鏡頭依接下來幾秒會經過的範圍決定縮放 */
-const LOOKAHEAD_SEC = 3
-const ZOOM_UPDATE_MS = 400
 const MAX_ZOOM = 14
-/** 每一格往目標縮放靠近的比例，避免畫面忽大忽小 */
-const ZOOM_EASING = 0.06
 /** 底部控制列的高度，鏡頭置中時避開 */
 const CONTROLS_PADDING = { top: 60, bottom: 110, left: 40, right: 40 }
 
@@ -43,12 +38,15 @@ export function Player({ map, route, bounds, onClose }: Props) {
   const [date, setDate] = useState<string | null>(null)
   const progressRef = useRef(0)
   const lastPiece = useRef(-1)
-  const zoom = useRef(map.getZoom())
-  const targetZoom = useRef(map.getZoom())
-  const lastZoomUpdate = useRef(0)
+  // 播放前先算好整段鏡頭（平滑過的中心與縮放），播放時只取值，畫面才不會晃
+  const camera = useMemo(
+    () =>
+      buildCameraPath(route, (bounds) => map.cameraForBounds(bounds, { padding: CONTROLS_PADDING, maxZoom: MAX_ZOOM })?.zoom ?? MAX_ZOOM),
+    [route, map],
+  )
 
-  /** 把指定進度畫到地圖上；moveCamera 為 false 時（拖動進度條）只畫線 */
-  function render(p: number, moveCamera: boolean) {
+  /** 把指定進度畫到地圖上，鏡頭依預先算好的路徑移動 */
+  function render(p: number) {
     const frame = frameAt(route, p)
     if (!frame) return
     if (frame.pieceIndex !== lastPiece.current) {
@@ -58,15 +56,8 @@ export function Player({ map, route, bounds, onClose }: Props) {
     setAnimationCurrent(map, route.pieces[frame.pieceIndex].mode, frame.partial, frame.position)
     setDate(frame.time !== undefined ? formatDate(frame.time) : null)
 
-    const now = performance.now()
-    if (now - lastZoomUpdate.current > ZOOM_UPDATE_MS) {
-      const ahead = boundsAhead(route, p, LOOKAHEAD_SEC)
-      const camera = ahead && map.cameraForBounds(ahead, { padding: CONTROLS_PADDING, maxZoom: MAX_ZOOM })
-      if (camera?.zoom !== undefined) targetZoom.current = camera.zoom
-      lastZoomUpdate.current = now
-    }
-    zoom.current += (targetZoom.current - zoom.current) * (moveCamera ? ZOOM_EASING : 1)
-    map.jumpTo({ center: frame.position, zoom: zoom.current, padding: { top: 0, left: 0, right: 0, bottom: CONTROLS_PADDING.bottom - CONTROLS_PADDING.top } })
+    const { center, zoom } = cameraAt(camera, p)
+    map.jumpTo({ center, zoom, padding: { top: 0, left: 0, right: 0, bottom: CONTROLS_PADDING.bottom - CONTROLS_PADDING.top } })
   }
 
   // 進入與離開播放模式：切換圖層
@@ -99,7 +90,7 @@ export function Player({ map, route, bounds, onClose }: Props) {
       const p = Math.min(1, progressRef.current + (now - last) / 1000 / route.durationSec)
       last = now
       progressRef.current = p
-      render(p, true)
+      render(p)
       // 進度條每 100 ms 更新一次即可，避免每一格都重新渲染 React
       if (now - lastUi > 100 || p >= 1) {
         setProgress(p)
@@ -137,7 +128,7 @@ export function Player({ map, route, bounds, onClose }: Props) {
             progressRef.current = p
             setProgress(p)
             lastPiece.current = -1
-            render(p, false)
+            render(p)
           }}
         />
         <button className="player-close" onClick={onClose} aria-label="結束播放">

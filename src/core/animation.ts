@@ -198,3 +198,80 @@ export function boundsAhead(route: AnimationRoute, progress: number, seconds: nu
     [Math.max(...lons), Math.max(...lats)],
   ]
 }
+
+export interface CameraPath {
+  /** 取樣點的中心 [經度, 緯度] 與縮放；依進度平均分布 */
+  centers: [number, number][]
+  zooms: number[]
+}
+
+/** 鏡頭每秒取樣次數 */
+const CAMERA_SAMPLES_PER_SEC = 10
+/** 中心取前後這麼多秒的平均，避免跟著 GPS 的小幅偏移與密集轉彎晃動 */
+const CENTER_SMOOTH_SEC = 1.5
+/** 縮放取前後這麼多秒的平均，避免一下拉遠一下拉近 */
+const ZOOM_SMOOTH_SEC = 3
+/** 決定縮放時看「前 1 秒到後 4 秒」會經過的範圍 */
+const ZOOM_BEHIND_SEC = 1
+const ZOOM_AHEAD_SEC = 4
+
+function movingAverage(values: number[], radius: number): number[] {
+  // 前綴和計算視窗平均；視窗在兩端自動縮短
+  const prefix = [0]
+  for (const v of values) prefix.push(prefix[prefix.length - 1] + v)
+  return values.map((_, i) => {
+    const a = Math.max(0, i - radius)
+    const b = Math.min(values.length - 1, i + radius)
+    return (prefix[b + 1] - prefix[a]) / (b - a + 1)
+  })
+}
+
+/**
+ * 預先算好整段動畫的鏡頭：中心是圓點位置的移動平均，縮放依附近會經過的範圍並再平滑。
+ * zoomFor 由呼叫端提供（需要地圖畫面大小），回傳能完整顯示該範圍的縮放
+ */
+export function buildCameraPath(route: AnimationRoute, zoomFor: (bounds: [[number, number], [number, number]]) => number): CameraPath {
+  const count = Math.max(2, Math.round(route.durationSec * CAMERA_SAMPLES_PER_SEC) + 1)
+  const positions = Array.from({ length: count }, (_, i) => frameAt(route, i / (count - 1))?.position ?? [0, 0])
+  const rawZooms = positions.map((_, i) => {
+    const p = i / (count - 1)
+    const from = p - ZOOM_BEHIND_SEC / route.durationSec
+    const bounds = boundsAhead(route, Math.max(0, from), ZOOM_BEHIND_SEC + ZOOM_AHEAD_SEC)
+    return bounds ? zoomFor(bounds) : 10
+  })
+  // 經度先展開再平均，跨換日線時才不會平均到地球另一側
+  const lons: number[] = []
+  for (const [lon] of positions) {
+    let x = lon
+    const prev = lons[lons.length - 1]
+    if (prev !== undefined) {
+      while (x - prev > 180) x -= 360
+      while (x - prev < -180) x += 360
+    }
+    lons.push(x)
+  }
+  const centerRadius = Math.round(CENTER_SMOOTH_SEC * CAMERA_SAMPLES_PER_SEC)
+  const smoothLons = movingAverage(lons, centerRadius)
+  const smoothLats = movingAverage(
+    positions.map((p) => p[1]),
+    centerRadius,
+  )
+  return {
+    centers: smoothLons.map((lon, i) => [lon, smoothLats[i]]),
+    zooms: movingAverage(rawZooms, Math.round(ZOOM_SMOOTH_SEC * CAMERA_SAMPLES_PER_SEC)),
+  }
+}
+
+/** 進度對應的鏡頭中心與縮放（在取樣點之間線性內插） */
+export function cameraAt(path: CameraPath, progress: number): { center: [number, number]; zoom: number } {
+  const last = path.centers.length - 1
+  const x = Math.min(1, Math.max(0, progress)) * last
+  const i = Math.min(last - 1, Math.floor(x))
+  const t = x - i
+  const [lon1, lat1] = path.centers[i]
+  const [lon2, lat2] = path.centers[i + 1]
+  return {
+    center: [lon1 + (lon2 - lon1) * t, lat1 + (lat2 - lat1) * t],
+    zoom: path.zooms[i] + (path.zooms[i + 1] - path.zooms[i]) * t,
+  }
+}
