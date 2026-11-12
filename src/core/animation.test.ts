@@ -69,6 +69,9 @@ test('長距離的推算段落被壓縮：1,500 km 的飛機只占 30 km 實際�
 
 test('多天旅程最多 60 秒；沒有時間資料時以檔案數計算', () => {
   expect(animationSeconds(loadTestTrack('relive-2024-08-14.gpx'))).toBe(20)
+  // 兩天的檔案（8/14、8/15）跨度超過 24 小時，算 2 天
+  const twoDays: Track = { segments: [...loadTestTrack('relive-2024-08-14.gpx').segments, ...loadTestTrack('relive-2024-08-15.gpx').segments], hasTime: true }
+  expect(animationSeconds(twoDays)).toBe(40)
   const noTime: Track = {
     segments: [1, 2, 3, 4].map((i) => ({ points: [{ lat: i, lon: 0 }, { lat: i + 0.001, lon: 0 }], source: `f${i}` })),
     hasTime: false,

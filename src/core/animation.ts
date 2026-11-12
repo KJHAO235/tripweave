@@ -133,16 +133,24 @@ function estimateRecordedKm(track: Track): number {
   return km
 }
 
-/** 一天約 20 秒、最少 20 秒、最多 60 秒；沒有時間資料時以檔案數代替天數 */
+/**
+ * 一天約 20 秒、最少 20 秒、最多 60 秒。天數以時間跨度計算（每 24 小時一天，不受裝置時區影響）；
+ * 沒有時間資料時以檔案數代替天數
+ */
 export function animationSeconds(track: Track): number {
-  const days = new Set<string>()
+  let first = Infinity
+  let last = -Infinity
   for (const segment of track.segments) {
     for (const { time } of segment.points) {
-      if (time !== undefined) days.add(new Date(time).toDateString())
+      if (time === undefined) continue
+      if (time < first) first = time
+      if (time > last) last = time
     }
   }
-  const count = days.size || new Set(track.segments.map((s) => s.fileId ?? s.source)).size
-  return Math.min(MAX_SECONDS, Math.max(MIN_SECONDS, count * SECONDS_PER_DAY))
+  const days = Number.isFinite(first)
+    ? Math.max(1, Math.ceil((last - first) / 86_400_000))
+    : new Set(track.segments.map((s) => s.fileId ?? s.source)).size
+  return Math.min(MAX_SECONDS, Math.max(MIN_SECONDS, days * SECONDS_PER_DAY))
 }
 
 /** 進度（0–1）對應的位置、時間與目前片段已畫出的部分 */
