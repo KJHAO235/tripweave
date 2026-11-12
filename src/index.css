@@ -649,6 +649,7 @@ button {
 }
 
 .player-toggle,
+.player-mode,
 .player-close {
   min-width: 40px;
   min-height: 40px;
@@ -667,4 +668,11 @@ button {
   background: none;
   color: var(--muted);
   font-size: 16px;
+}
+
+.player-mode {
+  background: var(--border);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 700;
 }

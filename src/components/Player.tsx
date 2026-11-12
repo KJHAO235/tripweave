@@ -2,7 +2,7 @@ import type { Map as MapLibreMap } from 'maplibre-gl'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { buildCameraPath, cameraAt, frameAt, type AnimationRoute } from '../core/animation'
 import type { Bounds } from '../core/track'
-import { setAnimationCurrent, setAnimationDone, setAnimationLayersVisible, type AnimationLines } from '../map/animationLayers'
+import { setAnimationCurrent, setAnimationDone, setAnimationLayersVisible, setTerrain3D, type AnimationLines } from '../map/animationLayers'
 import { setTrackLayersVisible } from '../map/trackLayers'
 
 interface Props {
@@ -14,6 +14,9 @@ interface Props {
 }
 
 const MAX_ZOOM = 14
+/** 3D 時的傾斜角度與縮放修正（傾斜後遠處看得更多，稍微拉近） */
+const PITCH_3D = 60
+const ZOOM_3D_OFFSET = 0.6
 /** 底部控制列的高度，鏡頭置中時避開 */
 const CONTROLS_PADDING = { top: 60, bottom: 110, left: 40, right: 40 }
 
@@ -36,6 +39,9 @@ export function Player({ map, route, bounds, onClose }: Props) {
   const [playing, setPlaying] = useState(true)
   const [progress, setProgress] = useState(0)
   const [date, setDate] = useState<string | null>(null)
+  const [is3D, setIs3D] = useState(true)
+  const is3DRef = useRef(is3D)
+  is3DRef.current = is3D
   const progressRef = useRef(0)
   const lastPiece = useRef(-1)
   // 播放前先算好整段鏡頭（平滑過的中心與縮放），播放時只取值，畫面才不會晃
@@ -56,8 +62,15 @@ export function Player({ map, route, bounds, onClose }: Props) {
     setAnimationCurrent(map, route.pieces[frame.pieceIndex].mode, frame.partial, frame.position)
     setDate(frame.time !== undefined ? formatDate(frame.time) : null)
 
-    const { center, zoom } = cameraAt(camera, p)
-    map.jumpTo({ center, zoom, padding: { top: 0, left: 0, right: 0, bottom: CONTROLS_PADDING.bottom - CONTROLS_PADDING.top } })
+    const { center, zoom, bearing } = cameraAt(camera, p)
+    const threeD = is3DRef.current
+    map.jumpTo({
+      center,
+      zoom: threeD ? zoom + ZOOM_3D_OFFSET : zoom,
+      bearing: threeD ? bearing : 0,
+      pitch: threeD ? PITCH_3D : 0,
+      padding: { top: 0, left: 0, right: 0, bottom: CONTROLS_PADDING.bottom - CONTROLS_PADDING.top },
+    })
   }
 
   // 進入與離開播放模式：切換圖層
@@ -72,9 +85,17 @@ export function Player({ map, route, bounds, onClose }: Props) {
       map.off('dragstart', pause)
       setAnimationLayersVisible(map, false)
       setTrackLayersVisible(map, true)
-      map.jumpTo({ padding: { top: 0, left: 0, right: 0, bottom: 0 } })
+      setTerrain3D(map, false)
+      map.jumpTo({ pitch: 0, bearing: 0, padding: { top: 0, left: 0, right: 0, bottom: 0 } })
     }
   }, [map])
+
+  // 2D／3D 切換：地形只在 3D 時載入
+  useEffect(() => {
+    setTerrain3D(map, is3D)
+    render(progressRef.current)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [is3D, map])
 
   // 播放迴圈
   useEffect(() => {
@@ -98,7 +119,7 @@ export function Player({ map, route, bounds, onClose }: Props) {
       }
       if (p >= 1) {
         setPlaying(false)
-        if (bounds) map.fitBounds(bounds, { padding: { top: 80, bottom: 140, left: 40, right: 40 }, duration: 1500 })
+        if (bounds) map.fitBounds(bounds, { padding: { top: 80, bottom: 140, left: 40, right: 40 }, pitch: 0, bearing: 0, duration: 1500 })
         return
       }
       raf = requestAnimationFrame(tick)
@@ -131,6 +152,9 @@ export function Player({ map, route, bounds, onClose }: Props) {
             render(p)
           }}
         />
+        <button className="player-mode" onClick={() => setIs3D(!is3D)} aria-label={is3D ? '切換為 2D' : '切換為 3D'}>
+          {is3D ? '2D' : '3D'}
+        </button>
         <button className="player-close" onClick={onClose} aria-label="結束播放">
           ✕
         </button>

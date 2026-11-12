@@ -200,9 +200,10 @@ export function boundsAhead(route: AnimationRoute, progress: number, seconds: nu
 }
 
 export interface CameraPath {
-  /** 取樣點的中心 [經度, 緯度] 與縮放；依進度平均分布 */
+  /** 取樣點的中心 [經度, 緯度]、縮放與朝向（度，北方為 0、順時針）；依進度平均分布 */
   centers: [number, number][]
   zooms: number[]
+  bearings: number[]
 }
 
 /** 鏡頭每秒取樣次數 */
@@ -211,6 +212,10 @@ const CAMERA_SAMPLES_PER_SEC = 10
 const CENTER_SMOOTH_SEC = 1.5
 /** 縮放取前後這麼多秒的平均，避免一下拉遠一下拉近 */
 const ZOOM_SMOOTH_SEC = 3
+/** 前進方向取鏡頭中心前後這麼多秒的走向 */
+const BEARING_SPAN_SEC = 1
+/** 方向再取前後這麼多秒的平均，避免畫面一直轉 */
+const BEARING_SMOOTH_SEC = 3
 /** 決定縮放時看「前 1 秒到後 4 秒」會經過的範圍 */
 const ZOOM_BEHIND_SEC = 1
 const ZOOM_AHEAD_SEC = 4
@@ -256,14 +261,42 @@ export function buildCameraPath(route: AnimationRoute, zoomFor: (bounds: [[numbe
     positions.map((p) => p[1]),
     centerRadius,
   )
+  const centers = smoothLons.map((lon, i): [number, number] => [lon, smoothLats[i]])
   return {
-    centers: smoothLons.map((lon, i) => [lon, smoothLats[i]]),
+    centers,
     zooms: movingAverage(rawZooms, Math.round(ZOOM_SMOOTH_SEC * CAMERA_SAMPLES_PER_SEC)),
+    bearings: smoothBearings(centers),
   }
 }
 
+/**
+ * 依鏡頭中心的走向算出前進方向，再以單位向量平均（角度不能直接平均，359° 與 1° 的平均應為 0°）；
+ * 停留不動時沿用前一個方向
+ */
+function smoothBearings(centers: [number, number][]): number[] {
+  const span = Math.round(BEARING_SPAN_SEC * CAMERA_SAMPLES_PER_SEC)
+  const xs: number[] = []
+  const ys: number[] = []
+  let last = { x: 0, y: 1 }
+  centers.forEach((_, i) => {
+    const [lon1, lat1] = centers[Math.max(0, i - span)]
+    const [lon2, lat2] = centers[Math.min(centers.length - 1, i + span)]
+    const dx = (lon2 - lon1) * Math.cos((((lat1 + lat2) / 2) * Math.PI) / 180)
+    const dy = lat2 - lat1
+    const length = Math.hypot(dx, dy)
+    // 移動距離極小時（停留、或跳到下一段行程前）方向不可靠
+    if (length > 1e-6) last = { x: dx / length, y: dy / length }
+    xs.push(last.x)
+    ys.push(last.y)
+  })
+  const radius = Math.round(BEARING_SMOOTH_SEC * CAMERA_SAMPLES_PER_SEC)
+  const sx = movingAverage(xs, radius)
+  const sy = movingAverage(ys, radius)
+  return sx.map((x, i) => (Math.atan2(x, sy[i]) * 180) / Math.PI)
+}
+
 /** 進度對應的鏡頭中心與縮放（在取樣點之間線性內插） */
-export function cameraAt(path: CameraPath, progress: number): { center: [number, number]; zoom: number } {
+export function cameraAt(path: CameraPath, progress: number): { center: [number, number]; zoom: number; bearing: number } {
   const last = path.centers.length - 1
   const x = Math.min(1, Math.max(0, progress)) * last
   const i = Math.min(last - 1, Math.floor(x))
@@ -273,5 +306,7 @@ export function cameraAt(path: CameraPath, progress: number): { center: [number,
   return {
     center: [lon1 + (lon2 - lon1) * t, lat1 + (lat2 - lat1) * t],
     zoom: path.zooms[i] + (path.zooms[i + 1] - path.zooms[i]) * t,
+    // 角度走最短的方向內插（350° 到 10° 經過 0°）
+    bearing: path.bearings[i] + ((((path.bearings[i + 1] - path.bearings[i]) % 360) + 540) % 360 - 180) * t,
   }
 }

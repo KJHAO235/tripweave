@@ -5,6 +5,13 @@ import { TRACK_COLORS } from './style'
 const SOURCE_DONE = 'anim-done'
 const SOURCE_CURRENT = 'anim-current'
 const SOURCE_HEAD = 'anim-head'
+const SOURCE_TERRAIN = 'terrain-dem'
+const LAYER_HILLSHADE = 'terrain-hillshade'
+
+/** AWS Open Data 的公開地形圖磚（Terrarium 格式，免費、不需註冊）；只在 3D 播放時載入 */
+const TERRAIN_TILES = 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'
+/** 地形起伏放大倍數，讓山勢在動畫中更明顯 */
+const TERRAIN_EXAGGERATION = 1.4
 
 export type AnimationLines = GeoJSON.FeatureCollection<GeoJSON.LineString, { mode: PieceMode }>
 
@@ -21,6 +28,25 @@ const LINE_STYLES: { mode: PieceMode; paint: Record<string, unknown>; round?: bo
 ]
 
 export function addAnimationLayers(map: MapLibreMap) {
+  map.addSource(SOURCE_TERRAIN, {
+    type: 'raster-dem',
+    tiles: [TERRAIN_TILES],
+    encoding: 'terrarium',
+    tileSize: 256,
+    maxzoom: 14,
+    attribution: '地形 © AWS Terrain Tiles',
+  })
+  // 山體陰影放在軌跡圖層下方，只在 3D 播放時顯示
+  map.addLayer(
+    {
+      id: LAYER_HILLSHADE,
+      type: 'hillshade',
+      source: SOURCE_TERRAIN,
+      layout: { visibility: 'none' },
+      paint: { 'hillshade-exaggeration': 0.35, 'hillshade-shadow-color': '#6b7280' },
+    },
+    'recorded-line',
+  )
   for (const id of [SOURCE_DONE, SOURCE_CURRENT, SOURCE_HEAD]) map.addSource(id, { type: 'geojson', data: EMPTY })
   for (const source of [SOURCE_DONE, SOURCE_CURRENT]) {
     for (const { mode, paint, round } of LINE_STYLES) {
@@ -39,7 +65,14 @@ export function addAnimationLayers(map: MapLibreMap) {
     type: 'circle',
     source: SOURCE_HEAD,
     layout: { visibility: 'none' },
-    paint: { 'circle-radius': 7, 'circle-color': '#fff', 'circle-stroke-color': TRACK_COLORS.recorded, 'circle-stroke-width': 4 },
+    // 傾斜時圓點仍保持正圓、面向鏡頭
+    paint: {
+      'circle-radius': 7,
+      'circle-color': '#fff',
+      'circle-stroke-color': TRACK_COLORS.recorded,
+      'circle-stroke-width': 4,
+      'circle-pitch-alignment': 'viewport',
+    },
   })
 }
 
@@ -61,4 +94,10 @@ export function setAnimationCurrent(map: MapLibreMap, mode: PieceMode, coords: [
     features: mode === 'jump' || coords.length < 2 ? [] : [{ type: 'Feature', properties: { mode }, geometry: { type: 'LineString', coordinates: coords } }],
   })
   ;(map.getSource(SOURCE_HEAD) as GeoJSONSource).setData({ type: 'Point', coordinates: head })
+}
+
+/** 3D：開啟地形起伏與山體陰影；關閉時回到平面地圖 */
+export function setTerrain3D(map: MapLibreMap, enabled: boolean) {
+  map.setTerrain(enabled ? { source: SOURCE_TERRAIN, exaggeration: TERRAIN_EXAGGERATION } : null)
+  map.setLayoutProperty(LAYER_HILLSHADE, 'visibility', enabled ? 'visible' : 'none')
 }
