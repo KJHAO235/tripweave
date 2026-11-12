@@ -2,13 +2,15 @@ import { useEffect, useRef, useState } from 'react'
 import { parseXmlInBrowser } from './browserXml'
 import type { ImportFailure } from './core/parse/mergeTracks'
 import { parseTrackFile, type ImportResult } from './core/parse/trackFile'
-import { classifyNewFiles, fileSummary, tripDisplayName, type NewFile, type TripFile } from './core/trip'
+import { classifyNewFiles, daysApart, fileSummary, formatApart, tripDisplayName, type NewFile, type TripFile } from './core/trip'
 import { setUpdateDeferred } from './pwa'
 import { createIndexedDbTripStore } from './storage/indexedDbTripStore'
 import { createMemoryTripStore, type FileMeta, type FileText, type TripRecord, type TripStore } from './storage/tripStore'
 
 /** 復原提示顯示的時間 */
 const UNDO_MS = 6000
+/** 加入的檔案和目前旅程相隔超過這麼多天時，建議改成新旅程 */
+const SUGGEST_NEW_TRIP_DAYS = 7
 
 export interface CurrentTrip {
   record: TripRecord
@@ -26,6 +28,18 @@ export interface UndoNotice {
   undo: () => void
 }
 
+/** 加入的檔案和目前旅程相隔很久時，建議改成新旅程 */
+export interface TripSuggestion {
+  message: string
+}
+
+/** readSelected 準備好的一個檔案：摘要、解析結果與原始文字 */
+interface SelectedEntry {
+  meta: FileMeta
+  tripFile: TripFile
+  text: FileText
+}
+
 export interface Trips {
   /** 依最後修改時間由新到舊 */
   list: TripRecord[]
@@ -35,6 +49,10 @@ export interface Trips {
   progress: Progress | null
   undoNotice: UndoNotice | null
   dismissUndo: () => void
+  suggestion: TripSuggestion | null
+  /** 把建議中的檔案移到一趟新旅程並切換過去 */
+  acceptSuggestion: () => Promise<void>
+  dismissSuggestion: () => void
   createTrip: (files: File[]) => Promise<void>
   addFiles: (files: File[]) => Promise<void>
   removeFile: (fileId: string) => Promise<void>
@@ -71,6 +89,8 @@ export function useTrips(onError: (messages: string[]) => void): Trips {
   const [ready, setReady] = useState(false)
   const [progress, setProgress] = useState<Progress | null>(null)
   const [undoNotice, setUndoNotice] = useState<UndoNotice | null>(null)
+  // 建議需要使用者決定，不自動消失；開啟、修改旅程時清除
+  const [suggestion, setSuggestion] = useState<(TripSuggestion & { tripId: string; entries: SelectedEntry[] }) | null>(null)
   // 只有最後一次開啟的旅程會顯示，連續點選時先前的讀取結果直接丟棄
   const openToken = useRef(0)
   const busyCount = useRef(0)
@@ -170,7 +190,7 @@ export function useTrips(onError: (messages: string[]) => void): Trips {
       parsed.map(({ name, result }) => ({ name, result })),
     )
     const now = Date.now()
-    const entries = added.map((file: NewFile) => {
+    const entries = added.map((file: NewFile): SelectedEntry => {
       const id = newId()
       return {
         meta: { id, name: file.name, fingerprint: file.fingerprint, summary: fileSummary(file.track), addedAt: now } satisfies FileMeta,
@@ -184,6 +204,7 @@ export function useTrips(onError: (messages: string[]) => void): Trips {
   }
 
   async function openTrip(tripId: string, records: TripRecord[] = listRef.current) {
+    setSuggestion(null)
     const record = records.find((t) => t.id === tripId)
     if (!record) return
     const token = ++openToken.current
@@ -233,6 +254,7 @@ export function useTrips(onError: (messages: string[]) => void): Trips {
   }, [store])
 
   async function createTrip(selected: File[]) {
+    setSuggestion(null)
     await busy(async () => {
       try {
         const { entries, messages } = await readSelected(selected, [])
@@ -260,6 +282,7 @@ export function useTrips(onError: (messages: string[]) => void): Trips {
   async function addFiles(selected: File[]) {
     const trip = currentRef.current
     if (!trip) return createTrip(selected)
+    setSuggestion(null)
     await busy(async () => {
       try {
         const { entries, messages } = await readSelected(selected, trip.record.files)
@@ -276,13 +299,54 @@ export function useTrips(onError: (messages: string[]) => void): Trips {
             entries.map((e) => e.text),
           ),
         )
+        suggestNewTrip(record.id, latest.record.files, entries)
       } finally {
         setProgress(null)
       }
     })
   }
 
+  /** 以加入前的旅程判斷：相隔超過 7 天的新檔案，建議移到新旅程 */
+  function suggestNewTrip(tripId: string, before: FileMeta[], entries: SelectedEntry[]) {
+    const summaries = before.map((f) => f.summary)
+    const far = entries.flatMap((entry) => {
+      const days = daysApart(summaries, entry.meta.summary)
+      return days !== undefined && days > SUGGEST_NEW_TRIP_DAYS ? [{ entry, days }] : []
+    })
+    if (far.length === 0) return
+    const nearest = Math.min(...far.map((f) => f.days))
+    const message =
+      far.length === 1
+        ? `${far[0].entry.meta.name} 和目前旅程相隔${formatApart(nearest)}`
+        : `${far.length} 個檔案和目前旅程相隔${formatApart(nearest)}以上`
+    setSuggestion({ tripId, entries: far.map((f) => f.entry), message })
+  }
+
+  async function acceptSuggestion() {
+    const pending = suggestion
+    setSuggestion(null)
+    const trip = currentRef.current
+    if (!pending || trip?.record.id !== pending.tripId) return
+    const moving = new Set(pending.entries.map((e) => e.meta.id))
+    // 從目前旅程拿掉這些檔案；檔案資料（解析結果與原文）沿用加入時讀到的，不必再讀一次
+    const remaining: TripRecord = { ...trip.record, updatedAt: Date.now(), files: trip.record.files.filter((f) => !moving.has(f.id)) }
+    const now = Date.now()
+    const created: TripRecord = { id: newId(), createdAt: now, updatedAt: now + 1, files: pending.entries.map((e) => e.meta) }
+    openToken.current++
+    updateCurrent({ record: created, files: pending.entries.map((e) => e.tripFile) })
+    updateList((prev) => [created, remaining, ...prev.filter((t) => t.id !== remaining.id)])
+    await write(async () => {
+      for (const id of moving) await store.removeFile(remaining, id)
+      await store.saveTrip(
+        created,
+        pending.entries.map((e) => e.text),
+      )
+      await store.setLastTripId(created.id)
+    })
+  }
+
   async function removeFile(fileId: string) {
+    setSuggestion(null)
     const trip = currentRef.current
     if (!trip) return
     // 移除最後一個檔案時視同刪除旅程
@@ -310,6 +374,7 @@ export function useTrips(onError: (messages: string[]) => void): Trips {
   }
 
   async function renameTrip(name: string) {
+    setSuggestion(null)
     const trip = currentRef.current
     if (!trip) return
     const customName = name.trim() || undefined
@@ -322,6 +387,7 @@ export function useTrips(onError: (messages: string[]) => void): Trips {
   }
 
   async function deleteTrip(tripId: string) {
+    setSuggestion(null)
     const wasCurrent = currentRef.current?.record.id === tripId
     const previous = wasCurrent ? currentRef.current : null
     const remaining = listRef.current.filter((t) => t.id !== tripId)
@@ -359,6 +425,9 @@ export function useTrips(onError: (messages: string[]) => void): Trips {
     progress,
     undoNotice,
     dismissUndo: () => setUndoNotice(null),
+    suggestion: suggestion && { message: suggestion.message },
+    acceptSuggestion: serial(acceptSuggestion),
+    dismissSuggestion: () => setSuggestion(null),
     createTrip: serial(createTrip),
     addFiles: serial(addFiles),
     removeFile: serial(removeFile),

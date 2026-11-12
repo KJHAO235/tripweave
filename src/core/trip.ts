@@ -119,3 +119,25 @@ export function classifyNewFiles(
   }
   return out
 }
+
+const DAY_MS = 86_400_000
+
+/**
+ * 新檔案與旅程（其他檔案）的時間範圍相隔幾天：範圍重疊時為 0；
+ * 任一方沒有時間資料時無法判斷，回傳 undefined
+ */
+export function daysApart(trip: FileSummary[], added: FileSummary): number | undefined {
+  const timed = trip.filter((s) => s.firstTime !== undefined)
+  if (timed.length === 0 || added.firstTime === undefined) return undefined
+  const first = Math.min(...timed.map((s) => s.firstTime!))
+  const last = Math.max(...timed.map((s) => s.lastTime!))
+  const gapMs = Math.max(0, added.firstTime - last, first - added.lastTime!)
+  return gapMs / DAY_MS
+}
+
+/** 「12 天」「約 5 個月」「約 2 年」 */
+export function formatApart(days: number): string {
+  if (days < 30) return `${Math.round(days)} 天`
+  if (days < 365) return `約 ${Math.round(days / 30.44)} 個月`
+  return `約 ${Math.round(days / 365.25)} 年`
+}

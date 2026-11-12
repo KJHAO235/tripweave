@@ -4,7 +4,7 @@ import { loadTestTrack, parseXmlForTest } from '../test/parseXml'
 import { parseTrackFile } from './parse/trackFile'
 import { formatDateRange } from './format'
 import { tripLabel, type Track } from './track'
-import { buildTrack, classifyNewFiles, fileFingerprint, fileOrder, fileSummary, tripDisplayName, tripMeta, type TripFile } from './trip'
+import { buildTrack, classifyNewFiles, daysApart, fileFingerprint, fileOrder, fileSummary, formatApart, tripDisplayName, tripMeta, type TripFile } from './trip'
 
 const day14 = loadTestTrack('relive-2024-08-14.gpx')
 const day15 = loadTestTrack('relive-2024-08-15.gpx')
@@ -123,5 +123,38 @@ describe('classifyNewFiles', () => {
   test('無法匯入的檔案列為失敗', () => {
     const result = classifyNewFiles([], [parsed('a.pdf', '%PDF')])
     expect(result.failures).toEqual([{ name: 'a.pdf', message: expect.stringContaining('不支援') }])
+  })
+})
+
+describe('daysApart 與 formatApart', () => {
+  const at = (iso: string) => Date.parse(iso)
+  const japan = [
+    { pointCount: 1, firstTime: at('2024-08-14T00:00:00Z'), lastTime: at('2024-08-15T12:00:00Z') },
+    { pointCount: 1, firstTime: at('2024-08-27T00:00:00Z'), lastTime: at('2024-08-28T12:00:00Z') },
+  ]
+
+  test('時間範圍重疊時為 0', () => {
+    expect(daysApart(japan, { pointCount: 1, firstTime: at('2024-08-20T00:00:00Z'), lastTime: at('2024-08-20T10:00:00Z') })).toBe(0)
+  })
+
+  test('日本 8/28 與 El Nido 1/26 相隔約 151 天，寫成「約 5 個月」', () => {
+    const days = daysApart(japan, { pointCount: 1, firstTime: at('2025-01-26T00:00:00Z'), lastTime: at('2025-01-26T08:00:00Z') })!
+    expect(days).toBeCloseTo(150.5, 0)
+    expect(formatApart(days)).toBe('約 5 個月')
+  })
+
+  test('早於旅程的檔案也計算間隔', () => {
+    expect(daysApart(japan, { pointCount: 1, firstTime: at('2024-08-01T00:00:00Z'), lastTime: at('2024-08-02T00:00:00Z') })).toBeCloseTo(12, 5)
+  })
+
+  test('格式：未滿 30 天、未滿一年、一年以上', () => {
+    expect(formatApart(12)).toBe('12 天')
+    expect(formatApart(400)).toBe('約 1 年')
+    expect(formatApart(800)).toBe('約 2 年')
+  })
+
+  test('任一方沒有時間資料時為 undefined', () => {
+    expect(daysApart(japan, { pointCount: 1 })).toBeUndefined()
+    expect(daysApart([{ pointCount: 1 }], { pointCount: 1, firstTime: 0, lastTime: 1 })).toBeUndefined()
   })
 })

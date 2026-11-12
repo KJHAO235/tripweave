@@ -585,3 +585,15 @@ button {
   /* 長短交錯，與地圖上的渡輪線一致，和飛機的等長虛線區分 */
   background: repeating-linear-gradient(90deg, var(--green) 0 7px, transparent 7px 9px, var(--green) 9px 11px, transparent 11px 13px);
 }
+
+.notice-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.undo.suggestion .notice-actions button:last-child {
+  color: #fff;
+  font-weight: 400;
+}

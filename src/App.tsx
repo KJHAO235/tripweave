@@ -106,6 +106,17 @@ export default function App() {
             </button>
           </div>
         )}
+        {trips.suggestion && (
+          <div className="undo suggestion" role="status">
+            <span>{trips.suggestion.message}</span>
+            <div className="notice-actions">
+              <button onClick={() => void trips.acceptSuggestion()}>改成新旅程</button>
+              <button onClick={trips.dismissSuggestion} aria-label="關閉建議">
+                ✕
+              </button>
+            </div>
+          </div>
+        )}
         {trips.undoNotice && (
           <div className="undo" role="status">
             <span>{trips.undoNotice.message}</span>
