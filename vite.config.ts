@@ -58,6 +58,16 @@ export default defineConfig({
             },
           },
           {
+            // 3D 動畫的衛星圖與地形圖磚：第二次播放同一趟旅程時不必重新下載
+            urlPattern: ({ url }) => url.hostname === 'tiles.maps.eox.at' || url.hostname === 's3.amazonaws.com',
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'terrain-satellite',
+              expiration: { maxAgeSeconds: 90 * 24 * 60 * 60, maxEntries: 4000 },
+              cacheableResponse: { statuses: [200] },
+            },
+          },
+          {
             // 機場資料隨網站版本更新，優先取得最新版，離線時用快取
             urlPattern: ({ url }) => url.pathname.endsWith('/airports.json'),
             handler: 'NetworkFirst',

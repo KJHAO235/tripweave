@@ -93,6 +93,11 @@ export function Player({ map, route, bounds, onClose }: Props) {
     })
   }
 
+  /** 整趟旅程的全景（平面、北方朝上） */
+  function showOverview(duration: number) {
+    if (bounds) map.fitBounds(bounds, { padding: { top: 80, bottom: 140, left: 40, right: 40 }, pitch: 0, bearing: 0, duration })
+  }
+
   // 進入與離開播放模式：切換圖層
   useEffect(() => {
     setTrackLayersVisible(map, false)
@@ -115,6 +120,11 @@ export function Player({ map, route, bounds, onClose }: Props) {
   useEffect(() => {
     setTerrain3D(map, is3D)
     map.setPixelRatio(is3D ? Math.min(window.devicePixelRatio, PIXEL_RATIO_3D) : window.devicePixelRatio)
+    // 播完後切換：維持整趟旅程的全景，不跳回終點的近景
+    if (progressRef.current >= 1) {
+      showOverview(0)
+      return
+    }
     render(progressRef.current)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [is3D, map])
@@ -141,7 +151,7 @@ export function Player({ map, route, bounds, onClose }: Props) {
       }
       if (p >= 1) {
         setPlaying(false)
-        if (bounds) map.fitBounds(bounds, { padding: { top: 80, bottom: 140, left: 40, right: 40 }, pitch: 0, bearing: 0, duration: 1500 })
+        showOverview(1500)
         return
       }
       raf = requestAnimationFrame(tick)
