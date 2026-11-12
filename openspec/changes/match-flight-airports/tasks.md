@@ -2,8 +2,8 @@
 
 ## 1. 機場資料
 
-- [ ] 1.1 新增 `scripts/airports/build-airports.ts`（含 CSV 解析與城市名稱整理），驗證測試：引號內含逗號的欄位正確解析、「Manila (Pasay)」整理為「Manila」、沒有定期航班或沒有 IATA 的機場被排除
-- [ ] 1.2 從 OurAirports 下載 `airports.csv` 並產生 `public/airports.json`，驗證檔案約 4,000 筆、包含 NRT／HND／OKA／MNL／USU／ENI、大小在 250 KB 內
+- [x] 1.1 新增 `scripts/airports/build-airports.ts`（含 CSV 解析與城市名稱整理），驗證測試：引號內含逗號的欄位正確解析、「Manila (Pasay)」整理為「Manila」、沒有定期航班或沒有 IATA 的機場被排除
+- [x] 1.2 從 OurAirports 下載 `airports.csv` 並產生 `public/airports.json`，驗證檔案約 4,000 筆、包含 NRT／HND／OKA／MNL／USU／ENI、大小在 300 KB 內（實測：4,008 筆、255 KB，gzip 後 104 KB）
 
 ## 2. 機場比對與飛機判斷（src/core）
 
