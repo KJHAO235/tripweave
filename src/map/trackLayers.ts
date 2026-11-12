@@ -122,3 +122,13 @@ export function setSelectedGap(map: MapLibreMap, gapId: string | null) {
   map.setFilter(LAYER_FERRY_SELECTED, ['all', IS_FERRY, ['==', ['get', 'gapId'], gapId ?? '']])
   map.setFilter(LAYER_FLIGHT_SELECTED, ['all', IS_FLIGHT, ['==', ['get', 'gapId'], gapId ?? '']])
 }
+
+/** 播放動畫時隱藏原本的軌跡圖層，結束後再顯示 */
+export function setTrackLayersVisible(map: MapLibreMap, visible: boolean) {
+  const sources = new Set([SOURCE_RECORDED, SOURCE_GAPS, SOURCE_INFERRED])
+  for (const layer of map.getStyle().layers) {
+    if ('source' in layer && sources.has(layer.source as string)) {
+      map.setLayoutProperty(layer.id, 'visibility', visible ? 'visible' : 'none')
+    }
+  }
+}

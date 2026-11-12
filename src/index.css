@@ -597,3 +597,74 @@ button {
   color: #fff;
   font-weight: 400;
 }
+
+.play-button {
+  pointer-events: auto;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--blue);
+}
+
+.player {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: calc(env(safe-area-inset-bottom) + 16px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.player > * {
+  pointer-events: auto;
+}
+
+.player-date {
+  background: rgb(255 255 255 / 0.92);
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.player-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  max-width: 520px;
+  background: rgb(255 255 255 / 0.95);
+  padding: 8px 10px;
+  border-radius: 999px;
+  box-shadow: 0 2px 10px rgb(0 0 0 / 0.2);
+}
+
+.player-controls input {
+  flex: 1;
+  min-width: 0;
+}
+
+.player-toggle,
+.player-close {
+  min-width: 40px;
+  min-height: 40px;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.player-toggle {
+  background: var(--blue);
+  color: #fff;
+  font-size: 14px;
+}
+
+.player-close {
+  background: none;
+  color: var(--muted);
+  font-size: 16px;
+}

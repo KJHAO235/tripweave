@@ -1,9 +1,12 @@
+import type { Map as MapLibreMap } from 'maplibre-gl'
 import { useMemo, useState } from 'react'
 import { FileList } from './components/FileList'
 import { GapPanel } from './components/GapPanel'
+import { Player } from './components/Player'
 import { ImportButton } from './components/ImportButton'
 import { TrackMap } from './components/TrackMap'
 import { TripList } from './components/TripList'
+import { buildAnimationRoute, type AnimationRoute } from './core/animation'
 import { DEFAULT_GAP_THRESHOLD_KM, detectGaps } from './core/gaps'
 import { toOverlayFeatures, toRecordedFeatures } from './core/mapFeatures'
 import { trackBounds, type Track } from './core/track'
@@ -17,6 +20,9 @@ export default function App() {
   const [panelExpanded, setPanelExpanded] = useState(true)
   const [errors, setErrors] = useState<string[]>([])
   const [listOpen, setListOpen] = useState(false)
+  const [map, setMap] = useState<MapLibreMap | null>(null)
+  // 按下播放時以當下的補齊結果建立動畫路線
+  const [animation, setAnimation] = useState<AnimationRoute | null>(null)
   const trips = useTrips(setErrors)
   const { current, progress } = trips
 
@@ -48,6 +54,7 @@ export default function App() {
         bounds={bounds}
         selectedGap={selectedGap}
         focusRequest={focusRequest}
+        onMapReady={setMap}
         onSelectGap={(id) => {
           setSelectedGapId(id)
           setPanelExpanded(true)
@@ -64,6 +71,17 @@ export default function App() {
         {!progress && (current || trips.list.length > 0) && (
           <button className="file-name trip-name" onClick={() => setListOpen(!listOpen)} aria-expanded={listOpen}>
             {current ? tripDisplayName(current.record.customName, current.record.files) : '我的旅程'} ▾
+          </button>
+        )}
+        {!progress && track && map && !animation && (
+          <button
+            className="file-name play-button"
+            onClick={() => {
+              setListOpen(false)
+              setAnimation(buildAnimationRoute(track, gaps, fills))
+            }}
+          >
+            ▶ 播放
           </button>
         )}
         {pending > 0 && (
@@ -125,7 +143,9 @@ export default function App() {
         )}
       </div>
 
-      {track ? (
+      {animation && map && <Player map={map} route={animation} bounds={bounds} onClose={() => setAnimation(null)} />}
+
+      {animation ? null : track ? (
         <GapPanel
           gaps={gaps}
           fills={fills}
