@@ -1,4 +1,5 @@
 import type { Gap, PointRef } from './gaps'
+import { nearestAirport, type Airport } from './airports'
 import { distanceKm, type LatLon } from './geo'
 import type { Track } from './track'
 
@@ -16,12 +17,18 @@ export const FLIGHT = {
   nearbySpanSec: 60,
   /** 鐵路補不了、超過這個直線距離的缺口視為飛機 */
   minDistanceKm: 300,
+  /** 沒有時間資料、兩端都在機場附近時，這個距離以上視為飛機 */
+  minAirportDistanceKm: 100,
   /** 大圓航線的點距 */
   pathStepKm: 50,
   maxPathPoints: 200,
 } as const
 
-export type FlightBasis = { kind: 'speed'; speedKmh: number } | { kind: 'distance'; distanceKm: number }
+export type FlightBasis =
+  | { kind: 'speed'; speedKmh: number }
+  | { kind: 'distance'; distanceKm: number }
+  /** 沒有時間資料、兩端都在機場附近 */
+  | { kind: 'airports'; distanceKm: number }
 
 export interface FlightFill {
   gapId: string
@@ -32,6 +39,8 @@ export interface FlightFill {
   /** 飛機缺口整段都是推算，沒有殘留的缺口 */
   remainders: []
   basis: FlightBasis
+  /** 缺口兩端 10 km 內的機場；航線經過這些機場 */
+  airports?: { from?: Airport; to?: Airport }
 }
 
 const toRadians = (degrees: number) => (degrees * Math.PI) / 180
@@ -116,4 +125,46 @@ export function flightAfterRail(track: Track, gap: Gap): FlightFill | null {
   }
   if (gap.distanceKm >= FLIGHT.minDistanceKm) return flightFill(gap, { kind: 'distance', distanceKm: gap.distanceKm })
   return null
+}
+
+/**
+ * 鐵路、渡輪都補不了、也不符合其他飛機規則時：沒有時間資料、距離 ≥ 100 km，
+ * 且兩端都在機場附近，判斷為飛機（例如 Google 我的地圖匯出的短程航班）
+ */
+export function flightByAirports(gap: Gap, airports: readonly Airport[]): FlightFill | null {
+  if (gap.durationSec !== undefined || gap.distanceKm < FLIGHT.minAirportDistanceKm) return null
+  if (!nearestAirport(airports, gap.from) || !nearestAirport(airports, gap.to)) return null
+  return flightFill(gap, { kind: 'airports', distanceKm: gap.distanceKm })
+}
+
+/**
+ * 兩端在機場 10 km 內時，航線改為經過機場：缺口起點 → 起點機場 → 大圓航線 → 終點機場 → 缺口終點；
+ * 沒有對到機場的一端照舊從端點畫起
+ */
+export function throughAirports(fill: FlightFill, gap: Gap, airports: readonly Airport[]): FlightFill {
+  const from = nearestAirport(airports, gap.from) ?? undefined
+  const to = nearestAirport(airports, gap.to) ?? undefined
+  if (!from && !to) return fill
+  const path: [number, number][] = [
+    [gap.from.lon, gap.from.lat],
+    ...greatCirclePath(from ?? gap.from, to ?? gap.to),
+    [gap.to.lon, gap.to.lat],
+  ]
+  // 經度依前一點展開，並去掉相鄰重複點（端點沒對到機場時，起點會重複）
+  const unwrapped: [number, number][] = []
+  for (const [lon, lat] of path) {
+    const prev = unwrapped.at(-1)
+    let x = lon
+    if (prev) {
+      while (x - prev[0] > 180) x -= 360
+      while (x - prev[0] < -180) x += 360
+      if (Math.abs(x - prev[0]) < 1e-9 && Math.abs(lat - prev[1]) < 1e-9) continue
+    }
+    unwrapped.push([x, lat])
+  }
+  let lengthKm = 0
+  for (let i = 1; i < unwrapped.length; i++) {
+    lengthKm += distanceKm({ lon: unwrapped[i - 1][0], lat: unwrapped[i - 1][1] }, { lon: unwrapped[i][0], lat: unwrapped[i][1] })
+  }
+  return { ...fill, path: unwrapped, lengthKm, airports: { from, to } }
 }
