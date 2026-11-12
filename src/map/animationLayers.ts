@@ -19,7 +19,7 @@ const SATELLITE_TILES = 'https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2023_3
 /** AWS Open Data 的公開地形圖磚（Terrarium 格式，免費、不需註冊）；只在 3D 播放時載入 */
 const TERRAIN_TILES = 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'
 /** 地形起伏放大倍數，讓山勢在動畫中更明顯 */
-const TERRAIN_EXAGGERATION = 1.8
+const TERRAIN_EXAGGERATION = 2.5
 
 export type AnimationLines = GeoJSON.FeatureCollection<GeoJSON.LineString, { mode: PieceMode }>
 
@@ -66,7 +66,7 @@ export function addAnimationLayers(map: MapLibreMap) {
       type: 'hillshade',
       source: SOURCE_TERRAIN,
       layout: { visibility: 'none' },
-      paint: { 'hillshade-exaggeration': 0.5, 'hillshade-shadow-color': '#1f2937', 'hillshade-highlight-color': '#ffffff' },
+      paint: { 'hillshade-exaggeration': 0.6, 'hillshade-shadow-color': '#1f2937', 'hillshade-highlight-color': '#ffffff' },
     },
     firstOverlay,
   )

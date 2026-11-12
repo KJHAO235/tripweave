@@ -15,12 +15,12 @@ interface Props {
 
 const MAX_ZOOM = 14
 /**
- * 3D：鏡頭貼近地形、從背後往前看。看前 1 秒到後 6 秒的範圍再稍微拉近，畫面上的移動不會太快；
+ * 3D：鏡頭貼近地形、從背後往前看。看前 1 秒到後 6 秒的範圍再拉近 1.3 級，山才顯得立體，畫面上的移動不會太快；
  * 圓點放在畫面下方三分之一處，前方留給地形
  */
-const PITCH_3D = 65
-const MAX_ZOOM_3D = 14.5
-const ZOOM_3D_OFFSET = 0.8
+const PITCH_3D = 70
+const MAX_ZOOM_3D = 15
+const ZOOM_3D_OFFSET = 1.3
 const ZOOM_WINDOW_3D = { behindSec: 1, aheadSec: 6 }
 /** 3D 播放時的繪圖解析度上限：iPhone 為 3 倍，降到 2 倍像素量約少一半，肉眼差別不大 */
 const PIXEL_RATIO_3D = 2
