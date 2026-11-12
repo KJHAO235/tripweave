@@ -15,12 +15,17 @@ interface Props {
 
 const MAX_ZOOM = 14
 /**
- * 3D：鏡頭貼近地形、從背後往前看。看前 1 秒到後 6 秒的範圍再拉近 1.3 級，山才顯得立體，畫面上的移動不會太快；
+ * 3D：鏡頭貼近地形、從背後往前看。看前 1 秒到後 6 秒的範圍再拉近 1 級，山才顯得立體，畫面上的移動不會太快；
  * 圓點放在畫面下方三分之一處，前方留給地形
  */
 const PITCH_3D = 70
 const MAX_ZOOM_3D = 15
-const ZOOM_3D_OFFSET = 1.3
+const ZOOM_3D_OFFSET = 1.0
+/**
+ * 3D 時畫面中心的高度：MapLibre 預設每格貼齊中心下方的地面，山路忽高忽低、地形圖磚載入時都會讓畫面上下跳；
+ * 改成自己控制，約 2 秒內逐步跟上地形
+ */
+const ELEVATION_SMOOTH_SEC = 2
 const ZOOM_WINDOW_3D = { behindSec: 1, aheadSec: 6 }
 /** 3D 播放時的繪圖解析度上限：iPhone 為 3 倍，降到 2 倍像素量約少一半，肉眼差別不大 */
 const PIXEL_RATIO_3D = 2
@@ -51,6 +56,9 @@ export function Player({ map, route, bounds, onClose }: Props) {
   is3DRef.current = is3D
   const progressRef = useRef(0)
   const lastPiece = useRef(-1)
+  /** 平滑過的畫面中心高度；null 表示下一格直接取地面高度（剛開始、拖動進度條後） */
+  const centerElevation = useRef<number | null>(null)
+  const lastRender = useRef(0)
   // 播放前先算好整段鏡頭（平滑過的中心與縮放），播放時只取值，畫面才不會晃
   const camera2D = useMemo(
     () =>
@@ -82,6 +90,7 @@ export function Player({ map, route, bounds, onClose }: Props) {
     const { center, zoom, bearing } = cameraAt(threeD ? camera3D : camera2D, p)
     const height = map.getContainer().clientHeight
     map.jumpTo({
+      ...(threeD ? { elevation: smoothElevation(center) } : {}),
       center,
       zoom: threeD ? Math.min(MAX_ZOOM_3D + 1, zoom + ZOOM_3D_OFFSET) : zoom,
       bearing: threeD ? bearing : 0,
@@ -91,6 +100,18 @@ export function Player({ map, route, bounds, onClose }: Props) {
         ? { top: Math.round(height * 0.4), left: 0, right: 0, bottom: CONTROLS_PADDING.bottom }
         : { top: 0, left: 0, right: 0, bottom: CONTROLS_PADDING.bottom - CONTROLS_PADDING.top },
     })
+  }
+
+  /** 中心高度逐步跟上地形；地形圖磚還沒載到時維持原本的高度 */
+  function smoothElevation(center: [number, number]): number {
+    const now = performance.now()
+    const dt = Math.min(1, (now - lastRender.current) / 1000)
+    lastRender.current = now
+    const ground = map.queryTerrainElevation(center)
+    const previous = centerElevation.current
+    const next = ground === null ? (previous ?? 0) : previous === null ? ground : previous + (ground - previous) * (1 - Math.exp(-dt / ELEVATION_SMOOTH_SEC))
+    centerElevation.current = next
+    return next
   }
 
   /** 整趟旅程的全景（平面、北方朝上） */
@@ -111,6 +132,7 @@ export function Player({ map, route, bounds, onClose }: Props) {
       setAnimationLayersVisible(map, false)
       setTrackLayersVisible(map, true)
       setTerrain3D(map, false)
+      map.setCenterClampedToGround(true)
       map.setPixelRatio(window.devicePixelRatio)
       map.jumpTo({ pitch: 0, bearing: 0, padding: { top: 0, left: 0, right: 0, bottom: 0 } })
     }
@@ -119,6 +141,8 @@ export function Player({ map, route, bounds, onClose }: Props) {
   // 2D／3D 切換：地形只在 3D 時載入，3D 時降低繪圖解析度
   useEffect(() => {
     setTerrain3D(map, is3D)
+    map.setCenterClampedToGround(!is3D)
+    centerElevation.current = null
     map.setPixelRatio(is3D ? Math.min(window.devicePixelRatio, PIXEL_RATIO_3D) : window.devicePixelRatio)
     // 播完後切換：維持整趟旅程的全景，不跳回終點的近景
     if (progressRef.current >= 1) {
@@ -135,6 +159,7 @@ export function Player({ map, route, bounds, onClose }: Props) {
     if (progressRef.current >= 1) {
       progressRef.current = 0
       lastPiece.current = -1
+      centerElevation.current = null
     }
     let raf = 0
     let last = performance.now()
@@ -181,6 +206,7 @@ export function Player({ map, route, bounds, onClose }: Props) {
             progressRef.current = p
             setProgress(p)
             lastPiece.current = -1
+            centerElevation.current = null
             render(p)
           }}
         />
