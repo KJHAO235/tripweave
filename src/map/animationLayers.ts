@@ -41,14 +41,16 @@ export function addAnimationLayers(map: MapLibreMap) {
     tiles: [TERRAIN_TILES],
     encoding: 'terrarium',
     tileSize: 256,
-    maxzoom: 14,
+    // 地形只需要到第 12 級（約 40 公尺），再細也看不出差別，卻要多下載好幾倍的圖磚
+    maxzoom: 12,
     attribution: '地形 © AWS Terrain Tiles',
   })
   map.addSource(SOURCE_SATELLITE, {
     type: 'raster',
     tiles: [SATELLITE_TILES],
     tileSize: 256,
-    maxzoom: 15,
+    // 衛星圖原始解析度約 10 公尺，第 14 級已足夠；更細的縮放直接放大使用
+    maxzoom: 14,
     attribution: 'Sentinel-2 cloudless 2023 © EOX IT Services GmbH（Copernicus Sentinel 資料）',
   })
   // 衛星圖與山體陰影放在底圖的道路與地名下方（第一個線或文字圖層之前），只在 3D 播放時顯示

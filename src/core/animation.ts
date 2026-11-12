@@ -38,9 +38,9 @@ export interface AnimationFrame {
 const MAX_RECORDED_POINTS = 6000
 /** 推算與缺口超過這個距離的部分壓縮成 1/10 的時間，長途飛機不會占掉大半動畫 */
 const FULL_SPEED_KM = 30
-const SECONDS_PER_DAY = 20
-const MIN_SECONDS = 20
-const MAX_SECONDS = 60
+const SECONDS_PER_DAY = 40
+const MIN_SECONDS = 30
+const MAX_SECONDS = 150
 
 type Point = { lon: number; lat: number; time?: number }
 
@@ -134,7 +134,7 @@ function estimateRecordedKm(track: Track): number {
 }
 
 /**
- * 一天約 20 秒、最少 20 秒、最多 60 秒。天數以時間跨度計算（每 24 小時一天，不受裝置時區影響）；
+ * 一天約 40 秒、最少 30 秒、最多 150 秒。天數以時間跨度計算（每 24 小時一天，不受裝置時區影響）；
  * 沒有時間資料時以檔案數代替天數
  */
 export function animationSeconds(track: Track): number {
@@ -212,10 +212,12 @@ const CAMERA_SAMPLES_PER_SEC = 10
 const CENTER_SMOOTH_SEC = 1.5
 /** 縮放取前後這麼多秒的平均，避免一下拉遠一下拉近 */
 const ZOOM_SMOOTH_SEC = 3
-/** 前進方向取鏡頭中心前後這麼多秒的走向 */
-const BEARING_SPAN_SEC = 1
+/** 前進方向取鏡頭中心前後這麼多秒的大方向 */
+const BEARING_SPAN_SEC = 3
 /** 方向再取前後這麼多秒的平均，避免畫面一直轉 */
-const BEARING_SMOOTH_SEC = 3
+const BEARING_SMOOTH_SEC = 6
+/** 畫面每秒最多轉這麼多度，急轉彎也慢慢轉過去，避免頭暈 */
+const MAX_TURN_DEG_PER_SEC = 12
 /** 決定縮放時預設看「前 1 秒到後 4 秒」會經過的範圍；看得越短，鏡頭越近 */
 const DEFAULT_ZOOM_WINDOW = { behindSec: 1, aheadSec: 4 }
 
@@ -295,7 +297,16 @@ function smoothBearings(centers: [number, number][]): number[] {
   const radius = Math.round(BEARING_SMOOTH_SEC * CAMERA_SAMPLES_PER_SEC)
   const sx = movingAverage(xs, radius)
   const sy = movingAverage(ys, radius)
-  return sx.map((x, i) => (Math.atan2(x, sy[i]) * 180) / Math.PI)
+  const smoothed = sx.map((x, i) => (Math.atan2(x, sy[i]) * 180) / Math.PI)
+  // 限制每個取樣間隔的轉動角度（走最短的方向）
+  const maxStep = MAX_TURN_DEG_PER_SEC / CAMERA_SAMPLES_PER_SEC
+  const limited = [smoothed[0]]
+  for (let i = 1; i < smoothed.length; i++) {
+    const prev = limited[i - 1]
+    const diff = ((((smoothed[i] - prev) % 360) + 540) % 360) - 180
+    limited.push(prev + Math.max(-maxStep, Math.min(maxStep, diff)))
+  }
+  return limited
 }
 
 /** 進度對應的鏡頭中心與縮放（在取樣點之間線性內插） */

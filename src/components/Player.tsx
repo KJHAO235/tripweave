@@ -15,13 +15,15 @@ interface Props {
 
 const MAX_ZOOM = 14
 /**
- * 3D：鏡頭貼近地形、從背後往前看。只看前 0.5 秒到後 2 秒的範圍並再拉近，
+ * 3D：鏡頭貼近地形、從背後往前看。看前 1 秒到後 6 秒的範圍再稍微拉近，畫面上的移動不會太快；
  * 圓點放在畫面下方三分之一處，前方留給地形
  */
-const PITCH_3D = 72
-const MAX_ZOOM_3D = 15
-const ZOOM_3D_OFFSET = 1.2
-const ZOOM_WINDOW_3D = { behindSec: 0.5, aheadSec: 2 }
+const PITCH_3D = 65
+const MAX_ZOOM_3D = 14.5
+const ZOOM_3D_OFFSET = 0.8
+const ZOOM_WINDOW_3D = { behindSec: 1, aheadSec: 6 }
+/** 3D 播放時的繪圖解析度上限：iPhone 為 3 倍，降到 2 倍像素量約少一半，肉眼差別不大 */
+const PIXEL_RATIO_3D = 2
 /** 底部控制列的高度，鏡頭置中時避開 */
 const CONTROLS_PADDING = { top: 60, bottom: 110, left: 40, right: 40 }
 
@@ -104,13 +106,15 @@ export function Player({ map, route, bounds, onClose }: Props) {
       setAnimationLayersVisible(map, false)
       setTrackLayersVisible(map, true)
       setTerrain3D(map, false)
+      map.setPixelRatio(window.devicePixelRatio)
       map.jumpTo({ pitch: 0, bearing: 0, padding: { top: 0, left: 0, right: 0, bottom: 0 } })
     }
   }, [map])
 
-  // 2D／3D 切換：地形只在 3D 時載入
+  // 2D／3D 切換：地形只在 3D 時載入，3D 時降低繪圖解析度
   useEffect(() => {
     setTerrain3D(map, is3D)
+    map.setPixelRatio(is3D ? Math.min(window.devicePixelRatio, PIXEL_RATIO_3D) : window.devicePixelRatio)
     render(progressRef.current)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [is3D, map])
