@@ -1,6 +1,8 @@
 import { describe, expect, test } from 'vitest'
 import { loadTestTrack } from '../test/parseXml'
 import { detectGaps, type Gap } from './gaps'
+import { distanceKm } from './geo'
+import { toMapFeatures } from './mapFeatures'
 import type { Track, TrackPoint } from './track'
 
 const day12 = loadTestTrack('Day1+2.kml')
@@ -164,5 +166,54 @@ describe('有時間與沒有時間的段落混合', () => {
     expect(gaps[1]).toMatchObject({ isFileBoundary: true })
     expect(gaps[1]).not.toHaveProperty('durationSec')
     expect(gaps[2]).not.toHaveProperty('durationSec')
+  })
+})
+
+describe('相隔超過 3 天的兩段行程', () => {
+  const japan = loadTestTrack('relive-2024-08-14.gpx')
+  const elNido = loadTestTrack('relive-elnido-2025-01-26.gpx')
+  const merged: Track = {
+    segments: [...japan.segments.map((s) => ({ ...s, fileId: 'japan' })), ...elNido.segments.map((s) => ({ ...s, fileId: 'elnido' }))],
+    hasTime: true,
+  }
+
+  test('日本與 El Nido 之間不形成缺口，缺口數等於兩檔各自的缺口數之和', () => {
+    const gaps = detectGaps(merged)
+    expect(gaps.filter((g) => g.isFileBoundary)).toHaveLength(0)
+    expect(gaps).toHaveLength(detectGaps(japan).length + detectGaps(elNido).length)
+  })
+
+  test('實際記錄的線不連接日本與菲律賓', () => {
+    const { recorded } = toMapFeatures(merged, detectGaps(merged))
+    for (const line of recorded.features[0].geometry.coordinates) {
+      for (let i = 1; i < line.length; i++) {
+        expect(distanceKm({ lon: line[i - 1][0], lat: line[i - 1][1] }, { lon: line[i][0], lat: line[i][1] })).toBeLessThan(50)
+      }
+    }
+  })
+
+  test('隔一晚（12 小時）、1,550 km 的兩個檔案仍形成缺口', () => {
+    const night = 12 * 3_600_000
+    const t: Track = {
+      segments: [
+        { points: [{ lat: 26.2, lon: 127.6, time: 0 }, { lat: 26.201, lon: 127.6, time: 60_000 }], source: 'a' },
+        { points: [{ lat: 35.55, lon: 139.78, time: night }, { lat: 35.551, lon: 139.78, time: night + 60_000 }], source: 'b' },
+      ],
+      hasTime: true,
+    }
+    const gaps = detectGaps(t)
+    expect(gaps).toHaveLength(1)
+    expect(gaps[0].isFileBoundary).toBe(true)
+  })
+
+  test('沒有時間資料的兩個檔案相距 200 km 仍形成缺口', () => {
+    const t: Track = {
+      segments: [
+        { points: [{ lat: 0, lon: 0 }, { lat: 0.001, lon: 0 }], source: 'a' },
+        { points: [{ lat: 0.001 + 4 * KM50_LAT, lon: 0 }, { lat: 0.002 + 4 * KM50_LAT, lon: 0 }], source: 'b' },
+      ],
+      hasTime: false,
+    }
+    expect(detectGaps(t)).toHaveLength(1)
   })
 })

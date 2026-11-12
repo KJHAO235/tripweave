@@ -2,6 +2,8 @@ import { distanceKm } from './geo'
 import { fileKey, type Track, type TrackPoint } from './track'
 
 export const DEFAULT_GAP_THRESHOLD_KM = 1
+/** 兩點相隔超過這麼久，視為不同段行程（例如同一趟旅程加入了幾個月後的檔案），不連線也不補齊 */
+export const SEPARATE_LEG_HOURS = 72
 
 export interface PointRef {
   segment: number
@@ -35,7 +37,7 @@ export function detectGaps(track: Track, thresholdKm = DEFAULT_GAP_THRESHOLD_KM)
       const ref: PointRef = { segment: segmentIndex, index, lat: point.lat, lon: point.lon }
       if (previous) {
         const distance = distanceKm(previous.point, point)
-        if (distance > thresholdKm) {
+        if (distance > thresholdKm && !isSeparateLeg(previous.point, point)) {
           const fileBoundary = previous.ref.segment !== segmentIndex && fileKey(track.segments[previous.ref.segment]) !== fileKey(segment)
           gaps.push(buildGap(previous, { ref, point }, distance, fileBoundary))
         }
@@ -45,6 +47,11 @@ export function detectGaps(track: Track, thresholdKm = DEFAULT_GAP_THRESHOLD_KM)
   })
 
   return gaps.sort((a, b) => b.distanceKm - a.distanceKm)
+}
+
+function isSeparateLeg(a: TrackPoint, b: TrackPoint): boolean {
+  if (a.time === undefined || b.time === undefined) return false
+  return Math.abs(b.time - a.time) > SEPARATE_LEG_HOURS * 3_600_000
 }
 
 function buildGap(
