@@ -14,9 +14,14 @@ interface Props {
 }
 
 const MAX_ZOOM = 14
-/** 3D 時的傾斜角度與縮放修正（傾斜後遠處看得更多，稍微拉近） */
-const PITCH_3D = 60
-const ZOOM_3D_OFFSET = 0.6
+/**
+ * 3D：鏡頭貼近地形、從背後往前看。只看前 0.5 秒到後 2 秒的範圍並再拉近，
+ * 圓點放在畫面下方三分之一處，前方留給地形
+ */
+const PITCH_3D = 72
+const MAX_ZOOM_3D = 15
+const ZOOM_3D_OFFSET = 1.2
+const ZOOM_WINDOW_3D = { behindSec: 0.5, aheadSec: 2 }
 /** 底部控制列的高度，鏡頭置中時避開 */
 const CONTROLS_PADDING = { top: 60, bottom: 110, left: 40, right: 40 }
 
@@ -45,9 +50,18 @@ export function Player({ map, route, bounds, onClose }: Props) {
   const progressRef = useRef(0)
   const lastPiece = useRef(-1)
   // 播放前先算好整段鏡頭（平滑過的中心與縮放），播放時只取值，畫面才不會晃
-  const camera = useMemo(
+  const camera2D = useMemo(
     () =>
       buildCameraPath(route, (bounds) => map.cameraForBounds(bounds, { padding: CONTROLS_PADDING, maxZoom: MAX_ZOOM })?.zoom ?? MAX_ZOOM),
+    [route, map],
+  )
+  const camera3D = useMemo(
+    () =>
+      buildCameraPath(
+        route,
+        (bounds) => map.cameraForBounds(bounds, { padding: CONTROLS_PADDING, maxZoom: MAX_ZOOM_3D })?.zoom ?? MAX_ZOOM_3D,
+        ZOOM_WINDOW_3D,
+      ),
     [route, map],
   )
 
@@ -62,14 +76,18 @@ export function Player({ map, route, bounds, onClose }: Props) {
     setAnimationCurrent(map, route.pieces[frame.pieceIndex].mode, frame.partial, frame.position)
     setDate(frame.time !== undefined ? formatDate(frame.time) : null)
 
-    const { center, zoom, bearing } = cameraAt(camera, p)
     const threeD = is3DRef.current
+    const { center, zoom, bearing } = cameraAt(threeD ? camera3D : camera2D, p)
+    const height = map.getContainer().clientHeight
     map.jumpTo({
       center,
-      zoom: threeD ? zoom + ZOOM_3D_OFFSET : zoom,
+      zoom: threeD ? Math.min(MAX_ZOOM_3D + 1, zoom + ZOOM_3D_OFFSET) : zoom,
       bearing: threeD ? bearing : 0,
       pitch: threeD ? PITCH_3D : 0,
-      padding: { top: 0, left: 0, right: 0, bottom: CONTROLS_PADDING.bottom - CONTROLS_PADDING.top },
+      // 3D 時把中心往下移到畫面下方約三分之一處，前方看得更遠
+      padding: threeD
+        ? { top: Math.round(height * 0.4), left: 0, right: 0, bottom: CONTROLS_PADDING.bottom }
+        : { top: 0, left: 0, right: 0, bottom: CONTROLS_PADDING.bottom - CONTROLS_PADDING.top },
     })
   }
 

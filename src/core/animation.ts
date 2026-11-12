@@ -216,9 +216,8 @@ const ZOOM_SMOOTH_SEC = 3
 const BEARING_SPAN_SEC = 1
 /** 方向再取前後這麼多秒的平均，避免畫面一直轉 */
 const BEARING_SMOOTH_SEC = 3
-/** 決定縮放時看「前 1 秒到後 4 秒」會經過的範圍 */
-const ZOOM_BEHIND_SEC = 1
-const ZOOM_AHEAD_SEC = 4
+/** 決定縮放時預設看「前 1 秒到後 4 秒」會經過的範圍；看得越短，鏡頭越近 */
+const DEFAULT_ZOOM_WINDOW = { behindSec: 1, aheadSec: 4 }
 
 function movingAverage(values: number[], radius: number): number[] {
   // 前綴和計算視窗平均；視窗在兩端自動縮短
@@ -235,13 +234,17 @@ function movingAverage(values: number[], radius: number): number[] {
  * 預先算好整段動畫的鏡頭：中心是圓點位置的移動平均，縮放依附近會經過的範圍並再平滑。
  * zoomFor 由呼叫端提供（需要地圖畫面大小），回傳能完整顯示該範圍的縮放
  */
-export function buildCameraPath(route: AnimationRoute, zoomFor: (bounds: [[number, number], [number, number]]) => number): CameraPath {
+export function buildCameraPath(
+  route: AnimationRoute,
+  zoomFor: (bounds: [[number, number], [number, number]]) => number,
+  zoomWindow: { behindSec: number; aheadSec: number } = DEFAULT_ZOOM_WINDOW,
+): CameraPath {
   const count = Math.max(2, Math.round(route.durationSec * CAMERA_SAMPLES_PER_SEC) + 1)
   const positions = Array.from({ length: count }, (_, i) => frameAt(route, i / (count - 1))?.position ?? [0, 0])
   const rawZooms = positions.map((_, i) => {
     const p = i / (count - 1)
-    const from = p - ZOOM_BEHIND_SEC / route.durationSec
-    const bounds = boundsAhead(route, Math.max(0, from), ZOOM_BEHIND_SEC + ZOOM_AHEAD_SEC)
+    const from = p - zoomWindow.behindSec / route.durationSec
+    const bounds = boundsAhead(route, Math.max(0, from), zoomWindow.behindSec + zoomWindow.aheadSec)
     return bounds ? zoomFor(bounds) : 10
   })
   // 經度先展開再平均，跨換日線時才不會平均到地球另一側

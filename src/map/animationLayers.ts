@@ -11,7 +11,7 @@ const LAYER_HILLSHADE = 'terrain-hillshade'
 /** AWS Open Data 的公開地形圖磚（Terrarium 格式，免費、不需註冊）；只在 3D 播放時載入 */
 const TERRAIN_TILES = 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'
 /** 地形起伏放大倍數，讓山勢在動畫中更明顯 */
-const TERRAIN_EXAGGERATION = 1.4
+const TERRAIN_EXAGGERATION = 1.8
 
 export type AnimationLines = GeoJSON.FeatureCollection<GeoJSON.LineString, { mode: PieceMode }>
 
@@ -43,7 +43,7 @@ export function addAnimationLayers(map: MapLibreMap) {
       type: 'hillshade',
       source: SOURCE_TERRAIN,
       layout: { visibility: 'none' },
-      paint: { 'hillshade-exaggeration': 0.35, 'hillshade-shadow-color': '#6b7280' },
+      paint: { 'hillshade-exaggeration': 0.7, 'hillshade-shadow-color': '#4b5563', 'hillshade-highlight-color': '#ffffff' },
     },
     'recorded-line',
   )

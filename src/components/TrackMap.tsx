@@ -44,6 +44,8 @@ export function TrackMap({ recorded, overlay, bounds, selectedGap, focusRequest,
       style: MAP_STYLE_URL,
       center: [139.77, 35.71],
       zoom: 4,
+      // 3D 動畫需要接近從背後看的視角（預設上限 60°）
+      maxPitch: 85,
       attributionControl: { compact: true },
     })
     mapRef.current = map
