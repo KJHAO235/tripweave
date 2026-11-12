@@ -7,6 +7,14 @@ const SOURCE_CURRENT = 'anim-current'
 const SOURCE_HEAD = 'anim-head'
 const SOURCE_TERRAIN = 'terrain-dem'
 const LAYER_HILLSHADE = 'terrain-hillshade'
+const SOURCE_SATELLITE = 'satellite'
+const LAYER_SATELLITE = 'satellite-imagery'
+
+/**
+ * EOX 的 Sentinel-2 無雲衛星圖（不需註冊；2018 年後的版本授權為 CC BY-NC-SA 4.0，限非商業使用）；
+ * 解析度約 10 公尺，只在 3D 播放時顯示
+ */
+const SATELLITE_TILES = 'https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2023_3857/default/g/{z}/{y}/{x}.jpg'
 
 /** AWS Open Data 的公開地形圖磚（Terrarium 格式，免費、不需註冊）；只在 3D 播放時載入 */
 const TERRAIN_TILES = 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'
@@ -36,16 +44,25 @@ export function addAnimationLayers(map: MapLibreMap) {
     maxzoom: 14,
     attribution: '地形 © AWS Terrain Tiles',
   })
-  // 山體陰影放在軌跡圖層下方，只在 3D 播放時顯示
+  map.addSource(SOURCE_SATELLITE, {
+    type: 'raster',
+    tiles: [SATELLITE_TILES],
+    tileSize: 256,
+    maxzoom: 15,
+    attribution: 'Sentinel-2 cloudless 2023 © EOX IT Services GmbH（Copernicus Sentinel 資料）',
+  })
+  // 衛星圖與山體陰影放在底圖的道路與地名下方（第一個線或文字圖層之前），只在 3D 播放時顯示
+  const firstOverlay = map.getStyle().layers.find((layer) => layer.type === 'line' || layer.type === 'symbol')?.id
+  map.addLayer({ id: LAYER_SATELLITE, type: 'raster', source: SOURCE_SATELLITE, layout: { visibility: 'none' } }, firstOverlay)
   map.addLayer(
     {
       id: LAYER_HILLSHADE,
       type: 'hillshade',
       source: SOURCE_TERRAIN,
       layout: { visibility: 'none' },
-      paint: { 'hillshade-exaggeration': 0.7, 'hillshade-shadow-color': '#4b5563', 'hillshade-highlight-color': '#ffffff' },
+      paint: { 'hillshade-exaggeration': 0.5, 'hillshade-shadow-color': '#1f2937', 'hillshade-highlight-color': '#ffffff' },
     },
-    'recorded-line',
+    firstOverlay,
   )
   for (const id of [SOURCE_DONE, SOURCE_CURRENT, SOURCE_HEAD]) map.addSource(id, { type: 'geojson', data: EMPTY })
   for (const source of [SOURCE_DONE, SOURCE_CURRENT]) {
@@ -96,8 +113,24 @@ export function setAnimationCurrent(map: MapLibreMap, mode: PieceMode, coords: [
   ;(map.getSource(SOURCE_HEAD) as GeoJSONSource).setData({ type: 'Point', coordinates: head })
 }
 
-/** 3D：開啟地形起伏與山體陰影；關閉時回到平面地圖 */
+/** 3D 的天空：遠方以地平線的霧氣淡出，還沒載入的遠處圖磚不會露出空白 */
+const SKY_3D = {
+  'sky-color': '#7fb6e8',
+  'sky-horizon-blend': 0.6,
+  'horizon-color': '#dbeafe',
+  'horizon-fog-blend': 0.6,
+  'fog-color': '#dbeafe',
+  'fog-ground-blend': 0.4,
+}
+
+/** 3D：開啟地形起伏、衛星圖、山體陰影與天空；關閉時回到平面地圖 */
 export function setTerrain3D(map: MapLibreMap, enabled: boolean) {
   map.setTerrain(enabled ? { source: SOURCE_TERRAIN, exaggeration: TERRAIN_EXAGGERATION } : null)
-  map.setLayoutProperty(LAYER_HILLSHADE, 'visibility', enabled ? 'visible' : 'none')
+  map.setSky(enabled ? SKY_3D : {})
+  for (const layer of [LAYER_SATELLITE, LAYER_HILLSHADE]) map.setLayoutProperty(layer, 'visibility', enabled ? 'visible' : 'none')
+  // 加入新的資料來源時，精簡版的資料來源標示會自動展開，蓋住播放列；收回成 ⓘ，需要時再點開。
+  // 圖磚載入後才會展開，因此在第一次載完時再收一次（之後使用者自己點開則不干涉）
+  const collapse = () => map.getContainer().querySelector('.maplibregl-ctrl-attrib')?.classList.remove('maplibregl-compact-show')
+  collapse()
+  map.once('idle', collapse)
 }
