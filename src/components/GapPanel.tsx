@@ -1,4 +1,5 @@
 import { useEffect, useRef, type ReactNode } from 'react'
+import { formatLeg } from '../core/airports'
 import { formatDuration, formatKm, formatLatLon, formatSpeed } from '../core/format'
 import type { Gap } from '../core/gaps'
 import type { GapFill } from '../core/fill'
@@ -128,11 +129,19 @@ function GapDetail({ gap, fill, onClose }: { gap: Gap; fill: GapFill | undefined
         )}
         {fill?.mode === 'flight' && (
           <>
+            {fill.airports && (
+              <>
+                <dt>航段</dt>
+                <dd>{formatLeg(fill.airports.from, fill.airports.to)}</dd>
+              </>
+            )}
             <dt>判斷依據</dt>
             <dd>
               {fill.basis.kind === 'speed'
                 ? `平均時速 ${Math.round(fill.basis.speedKmh)} km/h`
-                : `直線距離 ${Math.round(fill.basis.distanceKm)} km，鐵路無法補齊`}
+                : fill.basis.kind === 'distance'
+                  ? `直線距離 ${Math.round(fill.basis.distanceKm)} km，鐵路無法補齊`
+                  : `直線距離 ${Math.round(fill.basis.distanceKm)} km，兩端都在機場附近`}
             </dd>
             <dt>推算長度</dt>
             <dd>{formatKm(fill.lengthKm)}（大圓航線）</dd>
@@ -172,5 +181,7 @@ function detailTitle(gap: Gap, fill: GapFill | undefined): string {
 function fillTag(fill: GapFill): string {
   if (fill.mode === 'rail') return `鐵路 ${fill.routeNames[0] ?? ''}`
   if (fill.mode === 'ferry') return `渡輪 ${fill.routeNames[0] ?? ''}`
-  return '飛機'
+  const codes = [fill.airports?.from?.iata, fill.airports?.to?.iata]
+  if (codes[0] && codes[1]) return `飛機 ${codes[0]} → ${codes[1]}`
+  return ['飛機', ...codes.filter(Boolean)].join(' ')
 }

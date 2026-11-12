@@ -43,6 +43,26 @@ export default defineConfig({
               cacheableResponse: { statuses: [200] },
             },
           },
+          {
+            urlPattern: ({ url }) => url.pathname.endsWith('/ferry/v1/index.json'),
+            handler: 'NetworkFirst',
+            options: { cacheName: 'ferry-index' },
+          },
+          {
+            urlPattern: ({ url }) => url.pathname.includes('/ferry/v1/'),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'ferry-tiles',
+              expiration: { maxAgeSeconds: 30 * 24 * 60 * 60, maxEntries: 500 },
+              cacheableResponse: { statuses: [200] },
+            },
+          },
+          {
+            // 機場資料隨網站版本更新，優先取得最新版，離線時用快取
+            urlPattern: ({ url }) => url.pathname.endsWith('/airports.json'),
+            handler: 'NetworkFirst',
+            options: { cacheName: 'airports' },
+          },
         ],
       },
     }),

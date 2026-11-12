@@ -8,7 +8,7 @@ import { RailGraph } from './core/rail/graph'
 import { RailTileLoader } from './core/rail/loader'
 import { tileId, type TileKey } from './core/rail/tile'
 import type { Track } from './core/track'
-import { fetchFerryJson, fetchRailJson } from './railFetch'
+import { fetchFerryJson, fetchRailJson, loadAirports } from './railFetch'
 
 const railLoader = new RailTileLoader(fetchRailJson)
 const ferryLoader = new RailTileLoader(fetchFerryJson)
@@ -105,6 +105,7 @@ export function useGapFills(track: Track | null, gaps: Gap[]): GapFillState {
             gap,
             () => current.rail.graphFor(tilesOf[i]),
             () => current.ferry.graphFor(tilesForFerryGap(gap)),
+            loadAirports,
           )
           if (cancelled) return
           // 網格下載失敗時會跳到 catch，不會退而判斷為飛機

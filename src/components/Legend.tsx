@@ -21,7 +21,7 @@ export function Legend() {
         <span className="swatch gap" />
         缺口
       </span>
-      <small>鐵路與渡輪資料 © OpenStreetMap 貢獻者</small>
+      <small>鐵路與渡輪資料 © OpenStreetMap 貢獻者・機場資料 OurAirports</small>
       {/* 版本資訊放在這裡，避免與工具列的旅程摘要重疊 */}
       <small>build {__BUILD_TIME__}</small>
     </div>

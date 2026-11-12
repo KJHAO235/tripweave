@@ -12,13 +12,13 @@
 
 ## 3. 補齊流程與顯示
 
-- [ ] 3.1 `useGapFills` 以快取載入 `airports.json` 並傳給 `decideFill`，驗證 Chrome 中開啟 Coron 旅程，降落前缺口的推算線畫到 USU、其他 10 個不變；網路請求中 `airports.json` 只出現一次
-- [ ] 3.2 缺口資訊「航段」與列表標籤，驗證 Chrome 中點選降落前缺口看到「→ Coron (USU)」、標籤「飛機 USU」
-- [ ] 3.3 圖例資料來源加上機場資料（OurAirports），README 更新，驗證內容與實際行為一致
+- [x] 3.1 `useGapFills` 以快取載入 `airports.json` 並傳給 `decideFill`，驗證 Chrome 中開啟 Coron 旅程，降落前缺口的推算線畫到 USU、其他 10 個不變；網路請求中 `airports.json` 只出現一次；另把 `airports.json` 與渡輪網格加入 service worker 快取（渡輪先前漏掉）
+- [x] 3.2 缺口資訊「航段」與列表標籤，驗證 Chrome 中點選降落前缺口看到「→ Coron (USU)」、標籤「飛機 USU」
+- [x] 3.3 圖例資料來源加上機場資料（OurAirports），README 更新，驗證內容與實際行為一致
 
 ## 4. 驗收
 
-- [ ] 4.1 在 Chrome 開啟日本、Coron、El Nido 渡輪測試旅程，驗證補齊數量與方式不變（333/343、11 飛機、1 渡輪）
+- [x] 4.1 在 Chrome 開啟日本、Coron、El Nido 渡輪測試旅程，驗證補齊數量與方式不變（333/343、11 飛機、1 渡輪）
 - [ ] 4.2 徵得使用者同意後 push，在 iPhone 驗證 Coron 旅程的航段顯示
 
 ## Workflow follow-up
