@@ -14,7 +14,7 @@
 ## 3. 驗收
 
 - [x] 3.1 在 Chrome 開啟日本、Coron、El Nido 渡輪測試旅程，驗證缺口數與補齊結果不變（333/343、11 飛機、1 渡輪）
-- [ ] 3.2 徵得使用者同意後 push，在 iPhone 驗證日本旅程加入 El Nido 時出現提示並能一鍵改成新旅程
+- [x] 3.2 徵得使用者同意後 push，在 iPhone 驗證日本旅程加入 El Nido 時出現提示並能一鍵改成新旅程
 
 ## Workflow follow-up
 
