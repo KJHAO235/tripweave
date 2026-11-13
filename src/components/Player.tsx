@@ -16,9 +16,9 @@ interface Props {
 const MAX_ZOOM = 14
 /**
  * 3D：鏡頭貼近地形、從背後往前看。看前 1 秒到後 6 秒的範圍再拉近 1 級，山才顯得立體，畫面上的移動不會太快；
- * 圓點放在畫面下方三分之一處，前方留給地形
+ * 圓點放在畫面下方三分之一處，前方留給地形。傾斜 55°（和 Relive 相同），比較由上往下看，軌跡繞到山的背面時不容易被擋住
  */
-const PITCH_3D = 70
+const PITCH_3D = 55
 const MAX_ZOOM_3D = 15
 const ZOOM_3D_OFFSET = 1.0
 /**
